@@ -1,0 +1,213 @@
+{
+  "pluginAlias": "RegzaAppConnect",
+  "pluginType": "platform",
+  "singular": false,
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.1.7 defaults to the HTTPS TV Web Interface on port 4430 and uses hex remote key codes such as 40BF12 for power.",
+  "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X/J-series App Connect, use protocol=https, port=4430, powerKey=40BF12.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Platform Name",
+        "type": "string",
+        "default": "RegzaAppConnect"
+      },
+      "devices": {
+        "title": "REGZA TVs",
+        "type": "array",
+        "default": [],
+        "items": {
+          "type": "object",
+          "title": "REGZA TV",
+          "required": [
+            "name",
+            "ip"
+          ],
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "default": "REGZA",
+              "placeholder": "Living REGZA"
+            },
+            "ip": {
+              "title": "IP Address",
+              "type": "string",
+              "default": "",
+              "placeholder": "192.168.100.150"
+            },
+            "mac": {
+              "title": "MAC Address for Wake on LAN / Identity",
+              "type": "string",
+              "default": "",
+              "placeholder": "5C:93:A2:DB:3C:E1",
+              "description": "Optional. Used for stable HomeKit identity and Wake on LAN only when enableWakeOnLan=true."
+            },
+            "username": {
+              "title": "REGZA App Connect Username",
+              "type": "string",
+              "default": "",
+              "placeholder": "Username set on the TV"
+            },
+            "password": {
+              "title": "REGZA App Connect Password",
+              "type": "string",
+              "default": "",
+              "format": "password",
+              "placeholder": "Password set on the TV"
+            },
+            "protocol": {
+              "title": "Protocol",
+              "type": "string",
+              "default": "https",
+              "oneOf": [
+                {
+                  "title": "HTTPS / TV Web Interface",
+                  "enum": [
+                    "https"
+                  ]
+                },
+                {
+                  "title": "HTTP / Legacy App Connect",
+                  "enum": [
+                    "http"
+                  ]
+                }
+              ]
+            },
+            "port": {
+              "title": "Port",
+              "type": "integer",
+              "default": 4430,
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "allowSelfSignedCertificate": {
+              "title": "Allow Self-Signed TV Certificate",
+              "type": "boolean",
+              "default": true,
+              "description": "Keep enabled for REGZA HTTPS port 4430, which uses a TV Web Interface private CA certificate."
+            },
+            "powerKey": {
+              "title": "Power Key",
+              "type": "string",
+              "default": "40BF12",
+              "description": "REGZA power toggle key. For 55J10X this was verified as 40BF12 over https://TV:4430/remote/remote.htm."
+            },
+            "enableWakeOnLan": {
+              "title": "Enable Wake on LAN Before Power Key",
+              "type": "boolean",
+              "default": false,
+              "description": "Normally disabled for 55J10X because the HTTPS remote power key can toggle from standby."
+            },
+            "wakeOnLanAddress": {
+              "title": "Wake on LAN Broadcast Address",
+              "type": "string",
+              "default": "192.168.100.255"
+            },
+            "wakeOnLanPort": {
+              "title": "Wake on LAN Port",
+              "type": "integer",
+              "default": 2304,
+              "minimum": 0,
+              "maximum": 65535
+            },
+            "powerOnDelaySeconds": {
+              "title": "Wake on LAN Delay Seconds",
+              "type": "integer",
+              "default": 2,
+              "minimum": 0,
+              "maximum": 60
+            },
+            "pollingInterval": {
+              "title": "Polling Interval Seconds",
+              "type": "integer",
+              "default": 30,
+              "minimum": 5,
+              "maximum": 3600
+            },
+            "keyMap": {
+              "title": "Key Map Overrides",
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "Optional command name to REGZA hex key mapping, e.g. {\"volumeUp\":\"40BF1B\"}."
+            },
+            "inputs": {
+              "title": "Inputs",
+              "type": "array",
+              "default": [
+                {
+                  "name": "地デジ",
+                  "key": "40BF26",
+                  "identifier": 1
+                },
+                {
+                  "name": "BS",
+                  "key": "40BFC4",
+                  "identifier": 2
+                },
+                {
+                  "name": "CS",
+                  "key": "40BE64",
+                  "identifier": 3
+                },
+                {
+                  "name": "HDMI 1",
+                  "key": "40BF7A",
+                  "identifier": 4
+                },
+                {
+                  "name": "HDMI 2",
+                  "key": "40BF7C",
+                  "identifier": 5
+                },
+                {
+                  "name": "HDMI 3",
+                  "key": "40BF7D",
+                  "identifier": 6
+                },
+                {
+                  "name": "HDMI 4",
+                  "key": "40BF60",
+                  "identifier": 7
+                }
+              ],
+              "items": {
+                "type": "object",
+                "title": "Input",
+                "required": [
+                  "name",
+                  "key"
+                ],
+                "properties": {
+                  "name": {
+                    "title": "Display Name",
+                    "type": "string",
+                    "default": "HDMI 1"
+                  },
+                  "key": {
+                    "title": "REGZA Remote Key",
+                    "type": "string",
+                    "default": "40BF7A"
+                  },
+                  "identifier": {
+                    "title": "HomeKit Identifier",
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "debug": {
+        "title": "Debug Logging",
+        "type": "boolean",
+        "default": false
+      }
+    }
+  }
+}

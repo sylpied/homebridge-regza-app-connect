@@ -1,0 +1,61 @@
+{
+  "name": "homebridge-regza-app-connect",
+  "version": "0.1.7",
+  "description": "Homebridge dynamic platform plugin for controlling REGZA TVs via REGZA App Connect.",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "config.schema.json",
+    "README.md",
+    "README.ja.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "regza",
+    "toshiba",
+    "tv",
+    "homekit"
+  ],
+  "engines": {
+    "node": ">=22.0.0",
+    "homebridge": ">=1.8.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rimraf dist",
+    "lint": "eslint src/**/*.ts",
+    "prepack": "npm run clean && npm run build",
+    "publish:dry-run": "npm publish --dry-run"
+  },
+  "dependencies": {
+    "digest-fetch": "^3.1.1",
+    "wake_on_lan": "^1.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.31.0",
+    "@types/node": "^22.13.14",
+    "eslint": "^9.31.0",
+    "homebridge": "^1.11.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0"
+  },
+  "homebridge": {
+    "pluginAlias": "RegzaAppConnect",
+    "pluginType": "platform"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shamshiel/homebridge-regza-app-connect.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shamshiel/homebridge-regza-app-connect/issues"
+  },
+  "homepage": "https://github.com/shamshiel/homebridge-regza-app-connect#readme"
+}
