@@ -11,6 +11,5 @@ exports.DEFAULT_INPUTS = [
     { name: 'HDMI 1', key: remoteKeys_1.RemoteKeys.HDMI_1, identifier: 4 },
     { name: 'HDMI 2', key: remoteKeys_1.RemoteKeys.HDMI_2, identifier: 5 },
     { name: 'HDMI 3', key: remoteKeys_1.RemoteKeys.HDMI_3, identifier: 6 },
-    { name: 'HDMI 4', key: remoteKeys_1.RemoteKeys.HDMI_4, identifier: 7 },
 ];
 //# sourceMappingURL=settings.js.map

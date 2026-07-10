@@ -51,5 +51,4 @@ export const DEFAULT_INPUTS: RegzaInputConfig[] = [
   { name: 'HDMI 1', key: RemoteKeys.HDMI_1, identifier: 4 },
   { name: 'HDMI 2', key: RemoteKeys.HDMI_2, identifier: 5 },
   { name: 'HDMI 3', key: RemoteKeys.HDMI_3, identifier: 6 },
-  { name: 'HDMI 4', key: RemoteKeys.HDMI_4, identifier: 7 },
 ];

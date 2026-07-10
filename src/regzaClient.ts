@@ -47,7 +47,7 @@ const DEFAULT_KEY_MAP: Record<string, string> = {
   powerToggle: RemoteKeys.POWER_TOGGLE,
   mute: RemoteKeys.MUTE,
 
-  // These are best-effort REGZA key codes. They can be overridden with keyMap in config.
+  // Verified REGZA remote key codes. They can be overridden with keyMap in config.
   volumeUp: RemoteKeys.VOLUME_UP,
   volumeDown: RemoteKeys.VOLUME_DOWN,
   channelUp: RemoteKeys.CHANNEL_UP,
