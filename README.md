@@ -24,6 +24,10 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 | Power ON | `40BF7E` |
 | Power OFF | `40BF7F` |
 | Power Toggle | `40BF12` |
+| Terrestrial | `40BF7A` |
+| BS | `40BF7C` |
+| CS | `40BF7D` |
+| HDMI Next Active | `40BF3A` |
 | Remote endpoint | `/remote/remote.htm?key=<KEY>` |
 
 `remote.htm` returns plain text `0` on success.
@@ -50,7 +54,7 @@ See the [official J10X instruction manual](https://cs.regza.com/document/manual/
 
 ### HDMI input
 
-The 55J10X defaults use the verified `40BF3A` HDMI-next-active command. Selecting “HDMI (Next Active)” in HomeKit advances to the next active HDMI input. Direct HDMI 1-3 codes remain available for model-specific custom configurations, but are not used by the 55J10X defaults.
+The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A` commands have been verified on a physical 55J10X. Selecting “HDMI (Next Active)” in HomeKit advances to the next active HDMI input. Direct HDMI 1-3 codes remain available for model-specific custom configurations, but are not used by the 55J10X defaults.
 
 ## Recommended config for 55J10X
 

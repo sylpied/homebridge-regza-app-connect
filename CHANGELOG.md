@@ -11,6 +11,9 @@
 - Clarified that the verified 55J10X profile uses HTTPS/Digest authentication and does not require Basic authentication or Wake on LAN.
 - Clarified when MAC address, remote-power settings and Wake on LAN are needed.
 
+### Verified
+- Verified terrestrial (`40BF7A`), BS (`40BF7C`), CS (`40BF7D`), and HDMI-next-active (`40BF3A`) input commands on a physical REGZA 55J10X.
+
 ## 0.2.0
 
 ### Added
