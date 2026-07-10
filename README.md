@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.2.0
+# homebridge-regza-app-connect v0.2.1
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -28,9 +28,33 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 
 `remote.htm` returns plain text `0` on success.
 
+## TV-side setup
+
+Complete these steps on the TV before configuring Homebridge. Menu names vary by model; the examples below are from the REGZA J10X series.
+
+1. Connect the TV and the Homebridge server to the same local network.
+2. Give the TV a stable IP address. Either reserve its address on your router's DHCP server (recommended), or disable automatic IP acquisition on the TV and enter a valid IP address, subnet mask, gateway and DNS settings manually.
+3. Open **Settings → Network/Service Settings → External Linkage Settings → REGZA Apps Connect Settings**.
+4. Set **REGZA Apps Connect** to **Use**, then configure a username and password.
+5. Enter that same IP address, username and password in this plugin's Homebridge UI settings.
+
+### Authentication, remote power and Wake on LAN
+
+- The verified 55J10X profile uses **HTTPS on port 4430 with HTTP Digest authentication**. The REGZA Apps Connect username and password are used for that Digest authentication.
+- **Basic authentication is not required for the verified 55J10X profile.** Some REGZA generations or legacy applications may expose a separate Basic-authentication setting; only enable/configure it when the manual for that model or its working API requires it.
+- The 55J10X profile uses the verified discrete network keys (`40BF7E`/`40BF7F`) and therefore does **not** require Wake on LAN. Leave `enableWakeOnLan` disabled for this profile.
+- Wake on LAN is optional for models that cannot turn on through their remote API. When enabled, configure the MAC address of the TV's active network adapter and enable the TV's remote-power/network-standby setting. Standby power consumption may increase.
+- A MAC address is otherwise optional, but supplying it gives the HomeKit accessory a stable identity if the TV's IP address later changes.
+
+See the [official J10X instruction manual](https://cs.regza.com/document/manual/87826_01.pdf) for the model-specific network, REGZA Apps Connect and remote-power menus.
+
+### HDMI input
+
+The 55J10X defaults use the verified `40BF3A` HDMI-next-active command. Selecting “HDMI (Next Active)” in HomeKit advances to the next active HDMI input. Direct HDMI 1-3 codes remain available for model-specific custom configurations, but are not used by the 55J10X defaults.
+
 ## Recommended config for 55J10X
 
-With v0.2.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.2.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -41,7 +65,6 @@ With v0.2.0, choose the `55J10X` model profile and enter only the IP address and
       "name": "REGZA 55J10X",
       "model": "55J10X",
       "ip": "192.168.100.150",
-      "mac": "5C:93:A2:DB:3C:E1",
       "username": "your-regza-username",
       "password": "your-regza-password"
     }

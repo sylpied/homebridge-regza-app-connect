@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.1
+
+### Fixed
+- Corrected mute, volume, channel, navigation, enter, return, display, broadcast and HDMI remote key codes.
+- Changed the default HDMI input control to the verified HDMI-next-active key (`40BF3A`). Direct HDMI 1-3 codes remain available for model-specific overrides but are not used by the 55J10X defaults.
+
+### Documentation
+- Added required TV-side network and REGZA Apps Connect setup instructions.
+- Clarified that the verified 55J10X profile uses HTTPS/Digest authentication and does not require Basic authentication or Wake on LAN.
+- Clarified when MAC address, remote-power settings and Wake on LAN are needed.
+
 ## 0.2.0
 
 ### Added

@@ -48,8 +48,5 @@ export const DEFAULT_INPUTS: RegzaInputConfig[] = [
   { name: '地デジ', key: RemoteKeys.TERRESTRIAL, identifier: 1 },
   { name: 'BS', key: RemoteKeys.BS, identifier: 2 },
   { name: 'CS', key: RemoteKeys.CS, identifier: 3 },
-  { name: 'HDMI 1', key: RemoteKeys.HDMI_1, identifier: 4 },
-  { name: 'HDMI 2', key: RemoteKeys.HDMI_2, identifier: 5 },
-  { name: 'HDMI 3', key: RemoteKeys.HDMI_3, identifier: 6 },
-  { name: 'HDMI 4', key: RemoteKeys.HDMI_4, identifier: 7 },
+  { name: 'HDMI（次のアクティブ入力）', key: RemoteKeys.HDMI_NEXT_ACTIVE, identifier: 4 },
 ];
