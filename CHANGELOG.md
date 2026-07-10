@@ -4,7 +4,7 @@
 
 ### Fixed
 - Corrected mute, volume, channel, navigation, enter, return, display, broadcast and HDMI remote key codes.
-- Removed the invalid default HDMI 4 direct key. REGZA's published key table provides direct keys for HDMI 1-3 and an HDMI-next-active key, but no verified direct HDMI 4 key.
+- Changed the default HDMI input control to the verified HDMI-next-active key (`40BF3A`). Direct HDMI 1-3 codes remain available for model-specific overrides but are not used by the 55J10X defaults.
 
 ### Documentation
 - Added required TV-side network and REGZA Apps Connect setup instructions.

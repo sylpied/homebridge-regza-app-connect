@@ -48,6 +48,10 @@ Complete these steps on the TV before configuring Homebridge. Menu names vary by
 
 See the [official J10X instruction manual](https://cs.regza.com/document/manual/87826_01.pdf) for the model-specific network, REGZA Apps Connect and remote-power menus.
 
+### HDMI input
+
+The 55J10X defaults use the verified `40BF3A` HDMI-next-active command. Selecting “HDMI (Next Active)” in HomeKit advances to the next active HDMI input. Direct HDMI 1-3 codes remain available for model-specific custom configurations, but are not used by the 55J10X defaults.
+
 ## Recommended config for 55J10X
 
 With v0.2.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
