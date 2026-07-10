@@ -1,12 +1,15 @@
 {
   "name": "homebridge-regza-app-connect",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Homebridge dynamic platform plugin for controlling REGZA TVs via REGZA App Connect.",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
+    "src",
+    "tsconfig.json",
+    "eslint.config.mjs",
     "config.schema.json",
     "README.md",
     "README.ja.md",
@@ -34,7 +37,6 @@
     "publish:dry-run": "npm publish --dry-run"
   },
   "dependencies": {
-    "digest-fetch": "^3.1.1",
     "wake_on_lan": "^1.0.0"
   },
   "devDependencies": {
@@ -52,10 +54,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/shamshiel/homebridge-regza-app-connect.git"
+    "url": "git+https://github.com/sylpied/homebridge-regza-app-connect.git"
   },
   "bugs": {
-    "url": "https://github.com/shamshiel/homebridge-regza-app-connect/issues"
+    "url": "https://github.com/sylpied/homebridge-regza-app-connect/issues"
   },
-  "homepage": "https://github.com/shamshiel/homebridge-regza-app-connect#readme"
+  "homepage": "https://github.com/sylpied/homebridge-regza-app-connect#readme"
 }

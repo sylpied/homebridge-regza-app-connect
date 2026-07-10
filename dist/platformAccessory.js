@@ -30,7 +30,12 @@ class RegzaTvAccessory {
             protocol: device.protocol,
             allowSelfSignedCertificate: device.allowSelfSignedCertificate,
             debugEnabled: Boolean(platform.config.debug),
-            keyMap: { ...(device.powerKey ? { power: device.powerKey, powerToggle: device.powerKey } : {}), ...(device.keyMap ?? {}) },
+            keyMap: device.keyMap,
+            timeoutMs: device.requestTimeoutMs,
+            powerMode: device.powerMode,
+            powerOnKey: device.powerOnKey,
+            powerOffKey: device.powerOffKey,
+            powerToggleKey: device.powerToggleKey ?? device.powerKey,
         });
         this.platform.log.info(`Initializing REGZA accessory: ${device.name} (ip=${device.ip}, mac=${device.mac ? 'configured' : 'not configured'}, username=${device.username ? 'configured' : 'missing'}, password=${device.password ? 'configured' : 'missing'})`);
         this.accessory.getService(this.platform.Service.AccessoryInformation)
@@ -100,9 +105,17 @@ class RegzaTvAccessory {
             await this.wake(this.device.mac);
             await this.sleep((this.device.powerOnDelaySeconds ?? 2) * 1000);
         }
-        this.platform.log.info(`Sending REGZA power toggle to ${this.device.name}.`);
-        await this.client.powerToggle();
+        this.platform.log.info(`Sending REGZA power ${shouldBeActive ? 'ON' : 'OFF'} to ${this.device.name}.`);
+        if (shouldBeActive) {
+            await this.client.powerOn();
+        }
+        else {
+            await this.client.powerOff();
+        }
         this.active = shouldBeActive;
+        this.tvService.updateCharacteristic(this.platform.Characteristic.Active, shouldBeActive
+            ? this.platform.Characteristic.Active.ACTIVE
+            : this.platform.Characteristic.Active.INACTIVE);
     }
     async setInput(identifier) {
         this.currentInput = identifier;

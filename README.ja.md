@@ -1,24 +1,36 @@
-# homebridge-regza-app-connect v0.1.7
+# homebridge-regza-app-connect v0.2.0
 
-REGZA App Connect / TV Web Interface を使って、HomeKit からREGZAを操作する Homebridge Dynamic Platform Plugin です。
+REGZA App Connect / TV Web Interface を使って、HomeKit から REGZA を操作する Homebridge Dynamic Platform Plugin です。
 
-## v0.1.7 のポイント
+## 主な機能
 
-この版では、55J10Xで確認した HTTPS API を標準にしました。
+- HomeKit Television アクセサリ対応
+- HTTPS TV Web Interface、ポート 4430 対応
+- Digest 認証対応
+- REGZA の自己署名/Private CA 証明書対応
+- ON/OFF別電源キー対応
+- 旧機種向けトグル電源キー対応
+- モデルプロファイル対応
+- REGZA 55J10Xで実機検証済み
 
-```text
-https://<REGZA-IP>:4430/remote/remote.htm?key=40BF12
-```
+## REGZA 55J10X 実機検証結果
 
-確認済みの挙動:
+| 項目 | 値 |
+|---|---|
+| Protocol | HTTPS |
+| Port | 4430 |
+| Auth | Digest |
+| Certificate | TV private/self-signed CA |
+| Power ON | `40BF7E` |
+| Power OFF | `40BF7F` |
+| Power Toggle | `40BF12` |
+| Remote endpoint | `/remote/remote.htm?key=<KEY>` |
 
-- `:4430` は REGZA の `TV Web Interface` HTTPS サーバー
-- Digest 認証が必要
-- 自己署名/Private CA証明書なので、標準で許可
-- `key=40BF12` は電源トグル
-- 戻り値 `0` は成功
+`remote.htm` は成功時に text/plain の `0` を返します。
 
-## 設定例
+## 55J10X 推奨設定
+
+v0.2.0 では `55J10X` モデルプロファイルを選び、IPアドレスと App Connect のユーザー名/パスワードだけ入力すれば使えます。
 
 ```json
 {
@@ -26,36 +38,66 @@ https://<REGZA-IP>:4430/remote/remote.htm?key=40BF12
   "debug": true,
   "devices": [
     {
-      "name": "REGZA-55J10X",
+      "name": "REGZA 55J10X",
+      "model": "55J10X",
       "ip": "192.168.100.150",
       "mac": "5C:93:A2:DB:3C:E1",
-      "username": "saki",
-      "password": "saki",
-      "protocol": "https",
-      "port": 4430,
-      "allowSelfSignedCertificate": true,
-      "powerKey": "40BF12",
-      "enableWakeOnLan": false
+      "username": "REGZAで設定したユーザー名",
+      "password": "REGZAで設定したパスワード"
     }
   ]
 }
 ```
 
-## インストール
+このプロファイルでは以下が自動適用されます。
 
-```bash
-npm install -g /path/to/homebridge-regza-app-connect-0.1.7
+```json
+{
+  "protocol": "https",
+  "port": 4430,
+  "allowSelfSignedCertificate": true,
+  "powerMode": "discrete",
+  "powerOnKey": "40BF7E",
+  "powerOffKey": "40BF7F",
+  "powerToggleKey": "40BF12"
+}
 ```
 
-またはzipを展開して、そのフォルダを指定してください。
+## 電源制御方式
 
-```bash
-unzip homebridge-regza-app-connect-0.1.7.zip
-npm install -g ./homebridge-regza-app-connect-0.1.7
+### Discrete mode 推奨
+
+```json
+{
+  "powerMode": "discrete",
+  "powerOnKey": "40BF7E",
+  "powerOffKey": "40BF7F"
+}
 ```
 
-## メモ
+HomeKit ON で `powerOnKey`、HomeKit OFF で `powerOffKey` を送信します。
 
-旧版では Wake on LAN を試していましたが、55J10Xでは HTTPS `remote.htm?key=40BF12` がスタンバイ状態からの電源トグルとして動作したため、v0.1.7ではWOLを標準無効にしています。
+### Toggle mode 旧機種向け
 
-WOLも併用したい場合だけ、`enableWakeOnLan: true` を指定してください。
+```json
+{
+  "powerMode": "toggle",
+  "powerToggleKey": "40BF12"
+}
+```
+
+HomeKit ON/OFF のどちらでもトグルキーを送信します。ON/OFF別キーが効かない機種向けです。
+
+`powerKey`だけを定義したv0.1.xの既存設定は、従来どおりトグル動作を維持します。
+
+## 電源状態
+
+REGZAがHTTP `200 OK`と本文`0`を返した場合だけ、HomeKitの電源表示を楽観的に更新します。本文`1`または`2`はコマンド失敗として扱い、HomeKitの状態を更新しません。
+
+## ローカルインストール
+
+```bash
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.2.0.tgz
+```
+
+その後、Homebridge を再起動してください。

@@ -1,0 +1,25 @@
+export declare const RemoteKeys: {
+    readonly POWER_ON: "40BF7E";
+    readonly POWER_OFF: "40BF7F";
+    readonly POWER_TOGGLE: "40BF12";
+    readonly MUTE: "40BF0F";
+    readonly VOLUME_UP: "40BF1B";
+    readonly VOLUME_DOWN: "40BF1F";
+    readonly CHANNEL_UP: "40BF1A";
+    readonly CHANNEL_DOWN: "40BF1E";
+    readonly UP: "40BF73";
+    readonly DOWN: "40BF74";
+    readonly LEFT: "40BF75";
+    readonly RIGHT: "40BF76";
+    readonly ENTER: "40BE2D";
+    readonly RETURN: "40BF0D";
+    readonly DISPLAY: "40BF0E";
+    readonly TERRESTRIAL: "40BF26";
+    readonly BS: "40BFC4";
+    readonly CS: "40BE64";
+    readonly HDMI_1: "40BF7A";
+    readonly HDMI_2: "40BF7C";
+    readonly HDMI_3: "40BF7D";
+    readonly HDMI_4: "40BF60";
+};
+export type RemoteKeyCode = typeof RemoteKeys[keyof typeof RemoteKeys];
