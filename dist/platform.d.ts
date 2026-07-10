@@ -11,6 +11,7 @@ export declare class RegzaPlatform implements DynamicPlatformPlugin {
     configureAccessory(accessory: PlatformAccessory): void;
     private discoverDevices;
     private logDeviceConfig;
+    private normalizeDeviceConfig;
     private getDevices;
     private isValidDevice;
 }

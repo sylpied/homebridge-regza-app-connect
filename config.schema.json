@@ -2,8 +2,8 @@
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.1.7 defaults to the HTTPS TV Web Interface on port 4430 and uses hex remote key codes such as 40BF12 for power.",
-  "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X/J-series App Connect, use protocol=https, port=4430, powerKey=40BF12.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.2.0 adds model profiles and separate Power ON/OFF keys. REGZA 55J10X is verified with HTTPS port 4430.",
+  "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
     "properties": {
@@ -35,6 +35,26 @@
               "type": "string",
               "default": "",
               "placeholder": "192.168.100.150"
+            },
+            "model": {
+              "title": "REGZA Model Profile",
+              "type": "string",
+              "default": "55J10X",
+              "oneOf": [
+                {
+                  "title": "REGZA 55J10X / J10X series (verified)",
+                  "enum": [
+                    "55J10X"
+                  ]
+                },
+                {
+                  "title": "Custom / Manual settings",
+                  "enum": [
+                    "custom"
+                  ]
+                }
+              ],
+              "description": "Model profiles apply tested defaults such as protocol, port, power keys, and certificate handling. Choose Custom to manually configure everything."
             },
             "mac": {
               "title": "MAC Address for Wake on LAN / Identity",
@@ -88,11 +108,49 @@
               "default": true,
               "description": "Keep enabled for REGZA HTTPS port 4430, which uses a TV Web Interface private CA certificate."
             },
-            "powerKey": {
-              "title": "Power Key",
+            "powerMode": {
+              "title": "Power Control Mode",
+              "type": "string",
+              "default": "discrete",
+              "oneOf": [
+                {
+                  "title": "Separate ON/OFF Keys (Recommended)",
+                  "enum": [
+                    "discrete"
+                  ]
+                },
+                {
+                  "title": "Toggle Key (Legacy Models)",
+                  "enum": [
+                    "toggle"
+                  ]
+                }
+              ],
+              "description": "Use separate ON/OFF keys when supported. This matches HomeKit behavior better than a toggle key."
+            },
+            "powerOnKey": {
+              "title": "Power ON Key",
+              "type": "string",
+              "default": "40BF7E",
+              "description": "REGZA remote key used for Power ON in discrete mode. Verified on 55J10X."
+            },
+            "powerOffKey": {
+              "title": "Power OFF Key",
+              "type": "string",
+              "default": "40BF7F",
+              "description": "REGZA remote key used for Power OFF in discrete mode. Verified on 55J10X."
+            },
+            "powerToggleKey": {
+              "title": "Power Toggle Key",
               "type": "string",
               "default": "40BF12",
-              "description": "REGZA power toggle key. For 55J10X this was verified as 40BF12 over https://TV:4430/remote/remote.htm."
+              "description": "REGZA power toggle key used in toggle mode, and kept as a fallback for older configurations."
+            },
+            "powerKey": {
+              "title": "Legacy Power Key",
+              "type": "string",
+              "default": "40BF12",
+              "description": "Deprecated. Use Power Toggle Key instead. Existing v0.1.x configs continue to work."
             },
             "enableWakeOnLan": {
               "title": "Enable Wake on LAN Before Power Key",
@@ -118,6 +176,14 @@
               "default": 2,
               "minimum": 0,
               "maximum": 60
+            },
+            "requestTimeoutMs": {
+              "title": "Request Timeout Milliseconds",
+              "type": "integer",
+              "default": 5000,
+              "minimum": 1000,
+              "maximum": 60000,
+              "description": "Timeout for REGZA HTTPS/HTTP requests."
             },
             "pollingInterval": {
               "title": "Polling Interval Seconds",

@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegzaPlatform = void 0;
 const settings_1 = require("./settings");
 const platformAccessory_1 = require("./platformAccessory");
+const modelProfiles_1 = require("./modelProfiles");
+const remoteKeys_1 = require("./remoteKeys");
 class RegzaPlatform {
     log;
     config;
@@ -32,20 +34,21 @@ class RegzaPlatform {
                 this.log.warn(`Skipping REGZA TV because name, ip, username, or password is missing. name=${device.name ?? 'missing'}, ip=${device.ip ?? 'missing'}, username=${device.username ? 'configured' : 'missing'}, password=${device.password ? 'configured' : 'missing'}`);
                 continue;
             }
-            this.logDeviceConfig(device);
-            const uuid = this.api.hap.uuid.generate(`${settings_1.PLUGIN_NAME}:${device.mac ?? device.ip}:${device.name}`);
+            const normalizedDevice = this.normalizeDeviceConfig(device);
+            this.logDeviceConfig(normalizedDevice);
+            const uuid = this.api.hap.uuid.generate(`${settings_1.PLUGIN_NAME}:${normalizedDevice.mac ?? normalizedDevice.ip}:${normalizedDevice.name}`);
             configuredUuids.add(uuid);
             const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
             if (existingAccessory) {
-                this.log.info(`Restoring REGZA TV from cache: ${device.name}`);
-                existingAccessory.context.device = device;
-                new platformAccessory_1.RegzaTvAccessory(this, existingAccessory, device);
+                this.log.info(`Restoring REGZA TV from cache: ${normalizedDevice.name}`);
+                existingAccessory.context.device = normalizedDevice;
+                new platformAccessory_1.RegzaTvAccessory(this, existingAccessory, normalizedDevice);
                 continue;
             }
-            this.log.info(`Adding new REGZA TV: ${device.name}`);
-            const accessory = new this.api.platformAccessory(device.name, uuid);
-            accessory.context.device = device;
-            new platformAccessory_1.RegzaTvAccessory(this, accessory, device);
+            this.log.info(`Adding new REGZA TV: ${normalizedDevice.name}`);
+            const accessory = new this.api.platformAccessory(normalizedDevice.name, uuid);
+            accessory.context.device = normalizedDevice;
+            new platformAccessory_1.RegzaTvAccessory(this, accessory, normalizedDevice);
             this.api.registerPlatformAccessories(settings_1.PLUGIN_NAME, settings_1.PLATFORM_NAME, [accessory]);
         }
         const staleAccessories = this.cachedAccessories.filter(accessory => !configuredUuids.has(accessory.UUID));
@@ -59,8 +62,33 @@ class RegzaPlatform {
         this.log.info(`Configured REGZA TV: ${device.name} ` +
             `(ip=${device.ip}, protocol=${device.protocol ?? 'https'}, port=${device.port ?? (device.protocol === 'http' ? 80 : 4430)}, ` +
             `mac=${device.mac ? 'configured' : 'not configured'}, username=${device.username ? 'configured' : 'missing'}, ` +
-            `password=${device.password ? 'configured' : 'missing'}, powerKey=${device.powerKey ?? '40BF12'}, ` +
+            `password=${device.password ? 'configured' : 'missing'}, model=${device.model ?? 'custom'}, ` +
+            `powerMode=${device.powerMode ?? 'discrete'}, powerOnKey=${device.powerOnKey ?? remoteKeys_1.RemoteKeys.POWER_ON}, ` +
+            `powerOffKey=${device.powerOffKey ?? remoteKeys_1.RemoteKeys.POWER_OFF}, powerToggleKey=${device.powerToggleKey ?? device.powerKey ?? remoteKeys_1.RemoteKeys.POWER_TOGGLE}, ` +
             `wol=${device.enableWakeOnLan === true ? 'enabled' : 'disabled'}, inputs=${inputs || 'default'})`);
+    }
+    normalizeDeviceConfig(device) {
+        const usesLegacyPowerKey = device.powerMode === undefined
+            && device.powerKey !== undefined
+            && device.powerOnKey === undefined
+            && device.powerOffKey === undefined;
+        const profiled = (0, modelProfiles_1.applyModelProfile)({
+            model: modelProfiles_1.MODEL_55J10X,
+            ...device,
+        });
+        const powerToggleKey = profiled.powerToggleKey ?? profiled.powerKey ?? remoteKeys_1.RemoteKeys.POWER_TOGGLE;
+        return {
+            ...profiled,
+            protocol: profiled.protocol ?? 'https',
+            port: profiled.port ?? (profiled.protocol === 'http' ? 80 : 4430),
+            allowSelfSignedCertificate: profiled.allowSelfSignedCertificate ?? true,
+            // A v0.1.x config containing only powerKey used toggle semantics.
+            powerMode: usesLegacyPowerKey ? 'toggle' : profiled.powerMode ?? 'discrete',
+            powerOnKey: profiled.powerOnKey ?? remoteKeys_1.RemoteKeys.POWER_ON,
+            powerOffKey: profiled.powerOffKey ?? remoteKeys_1.RemoteKeys.POWER_OFF,
+            powerToggleKey,
+            requestTimeoutMs: profiled.requestTimeoutMs ?? 5000,
+        };
     }
     getDevices() {
         return this.config.devices ?? this.config.tvs ?? [];

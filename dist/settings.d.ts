@@ -6,21 +6,29 @@ export interface RegzaInputConfig {
     key: string;
     identifier?: number;
 }
+export type PowerMode = 'discrete' | 'toggle';
 export interface RegzaDeviceConfig {
     name: string;
     ip: string;
     mac?: string;
     username: string;
     password: string;
+    model?: string;
     port?: number;
     protocol?: 'http' | 'https';
     allowSelfSignedCertificate?: boolean;
+    powerMode?: PowerMode;
+    powerOnKey?: string;
+    powerOffKey?: string;
+    powerToggleKey?: string;
+    /** @deprecated Use powerToggleKey instead. Kept for v0.1.x config compatibility. */
     powerKey?: string;
     keyMap?: Record<string, string>;
     enableWakeOnLan?: boolean;
     wakeOnLanPort?: number;
     wakeOnLanAddress?: string;
     powerOnDelaySeconds?: number;
+    requestTimeoutMs?: number;
     pollingInterval?: number;
     inputs?: RegzaInputConfig[];
 }

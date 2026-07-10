@@ -4,83 +4,92 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegzaClient = void 0;
-const digest_fetch_1 = __importDefault(require("digest-fetch"));
+const node_crypto_1 = __importDefault(require("node:crypto"));
 const node_http_1 = __importDefault(require("node:http"));
 const node_https_1 = __importDefault(require("node:https"));
+const remoteKeys_1 = require("./remoteKeys");
 const DEFAULT_KEY_MAP = {
-    power: '40BF12',
-    powerToggle: '40BF12',
-    mute: '40BF0F',
+    power: remoteKeys_1.RemoteKeys.POWER_TOGGLE,
+    powerOn: remoteKeys_1.RemoteKeys.POWER_ON,
+    powerOff: remoteKeys_1.RemoteKeys.POWER_OFF,
+    powerToggle: remoteKeys_1.RemoteKeys.POWER_TOGGLE,
+    mute: remoteKeys_1.RemoteKeys.MUTE,
     // These are best-effort REGZA key codes. They can be overridden with keyMap in config.
-    volumeUp: '40BF1B',
-    volumeDown: '40BF1F',
-    channelUp: '40BF1A',
-    channelDown: '40BF1E',
-    up: '40BF73',
-    down: '40BF74',
-    left: '40BF75',
-    right: '40BF76',
-    enter: '40BE2D',
-    return: '40BF0D',
-    display: '40BF0E',
+    volumeUp: remoteKeys_1.RemoteKeys.VOLUME_UP,
+    volumeDown: remoteKeys_1.RemoteKeys.VOLUME_DOWN,
+    channelUp: remoteKeys_1.RemoteKeys.CHANNEL_UP,
+    channelDown: remoteKeys_1.RemoteKeys.CHANNEL_DOWN,
+    up: remoteKeys_1.RemoteKeys.UP,
+    down: remoteKeys_1.RemoteKeys.DOWN,
+    left: remoteKeys_1.RemoteKeys.LEFT,
+    right: remoteKeys_1.RemoteKeys.RIGHT,
+    enter: remoteKeys_1.RemoteKeys.ENTER,
+    return: remoteKeys_1.RemoteKeys.RETURN,
+    display: remoteKeys_1.RemoteKeys.DISPLAY,
 };
 class RegzaClient {
     options;
-    httpClient;
-    agent;
     protocol;
     port;
     keyMap;
+    timeoutMs;
+    powerMode;
     constructor(options) {
         this.options = options;
         this.protocol = options.protocol ?? 'https';
         this.port = options.port ?? (this.protocol === 'https' ? 4430 : 80);
-        this.keyMap = { ...DEFAULT_KEY_MAP, ...(options.keyMap ?? {}) };
-        this.httpClient = new digest_fetch_1.default(options.username, options.password);
-        this.agent = this.protocol === 'https'
-            ? new node_https_1.default.Agent({ rejectUnauthorized: options.allowSelfSignedCertificate === false })
-            : new node_http_1.default.Agent();
+        this.keyMap = {
+            ...DEFAULT_KEY_MAP,
+            ...(options.powerOnKey ? { powerOn: options.powerOnKey } : {}),
+            ...(options.powerOffKey ? { powerOff: options.powerOffKey } : {}),
+            ...(options.powerToggleKey ? { power: options.powerToggleKey, powerToggle: options.powerToggleKey } : {}),
+            ...(options.keyMap ?? {}),
+        };
+        this.timeoutMs = options.timeoutMs ?? 5000;
+        this.powerMode = options.powerMode ?? 'discrete';
     }
     async sendKey(key) {
         const mappedKey = this.resolveKey(key);
         const encodedKey = encodeURIComponent(mappedKey);
-        const url = `${this.protocol}://${this.options.ip}:${this.port}/remote/remote.htm?key=${encodedKey}`;
+        const path = `/remote/remote.htm?key=${encodedKey}`;
+        const url = `${this.protocol}://${this.options.ip}:${this.port}${path}`;
         if (this.options.debugEnabled) {
-            this.options.log.info(`[${this.options.name}] REGZA request: GET ${url} (sourceKey=${key}, digest username=${this.options.username ? 'configured' : 'missing'}, password=${this.options.password ? 'configured' : 'missing'})`);
+            this.options.log.info(`[${this.options.name}] REGZA request: GET ${url} (sourceKey=${key}, digest username=${this.options.username ? 'configured' : 'missing'}, password=${this.options.password ? 'configured' : 'missing'}, allowSelfSignedCertificate=${this.options.allowSelfSignedCertificate !== false})`);
         }
         else {
             this.options.log.debug(`[${this.options.name}] REGZA request key=${key} mappedKey=${mappedKey}`);
         }
         try {
-            const response = await this.httpClient.fetch(url, {
-                method: 'GET',
-                agent: this.agent,
-            });
-            const body = (await response.text()).trim();
+            const response = await this.requestWithDigest(path);
+            const body = response.body.trim();
             if (this.options.debugEnabled) {
-                this.options.log.info(`[${this.options.name}] REGZA response: key=${key}, mappedKey=${mappedKey}, status=${response.status} ${response.statusText}, body=${JSON.stringify(body)}`);
+                this.options.log.info(`[${this.options.name}] REGZA response: key=${key}, mappedKey=${mappedKey}, status=${response.statusCode} ${response.statusMessage}, body=${JSON.stringify(body)}`);
             }
-            if (response.status === 401) {
-                this.options.log.warn(`[${this.options.name}] REGZA authentication failed. Check App Connect username/password on the TV and in Homebridge config.`);
-                return body;
+            if (response.statusCode === 401) {
+                throw new Error('REGZA authentication failed. Check the App Connect username and password.');
             }
-            if (!response.ok) {
-                this.options.log.warn(`[${this.options.name}] REGZA command failed: key=${key}, mappedKey=${mappedKey}, status=${response.status} ${response.statusText}, body=${JSON.stringify(body)}`);
-                return body;
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+                throw new Error(`REGZA returned HTTP ${response.statusCode} ${response.statusMessage}, body=${JSON.stringify(body)}`);
             }
             // REGZA remote.htm returns text/plain: 0=success, 1/2=not executed/invalid depending on model.
             if (body !== '0') {
-                this.options.log.debug(`[${this.options.name}] REGZA returned non-success body for key=${key}, mappedKey=${mappedKey}: ${JSON.stringify(body)}`);
+                throw new Error(`REGZA did not execute key=${mappedKey}; response body=${JSON.stringify(body)}`);
             }
             return body;
         }
         catch (error) {
-            this.options.log.warn(`[${this.options.name}] REGZA command error: key=${key}, mappedKey=${mappedKey}, ${error instanceof Error ? error.message : String(error)}`);
+            this.options.log.warn(`[${this.options.name}] REGZA command error: key=${key}, mappedKey=${mappedKey}, ${this.describeError(error)}`);
             throw error;
         }
     }
+    async powerOn() {
+        await this.sendKey(this.powerMode === 'discrete' ? 'powerOn' : 'powerToggle');
+    }
+    async powerOff() {
+        await this.sendKey(this.powerMode === 'discrete' ? 'powerOff' : 'powerToggle');
+    }
     async powerToggle() {
-        await this.sendKey('power');
+        await this.sendKey('powerToggle');
     }
     async volumeUp() {
         await this.sendKey('volumeUp');
@@ -97,8 +106,137 @@ class RegzaClient {
     async channelDown() {
         await this.sendKey('channelDown');
     }
+    async requestWithDigest(path) {
+        const first = await this.request(path);
+        if (first.statusCode !== 401) {
+            return first;
+        }
+        const authenticateHeader = first.headers['www-authenticate'];
+        const header = Array.isArray(authenticateHeader) ? authenticateHeader[0] : authenticateHeader;
+        if (!header) {
+            throw new Error('Digest authentication challenge was not returned by REGZA');
+        }
+        const challenge = this.parseDigestChallenge(header);
+        const authorization = this.createDigestAuthorization(path, challenge);
+        return this.request(path, authorization);
+    }
+    request(path, authorization) {
+        const useHttps = this.protocol === 'https';
+        const transport = useHttps ? node_https_1.default : node_http_1.default;
+        const headers = {
+            'Accept': '*/*',
+            'Connection': 'close',
+            'User-Agent': 'homebridge-regza-app-connect/0.2.0',
+        };
+        if (authorization) {
+            headers.Authorization = authorization;
+        }
+        return new Promise((resolve, reject) => {
+            const request = transport.request({
+                host: this.options.ip,
+                port: this.port,
+                path,
+                method: 'GET',
+                headers,
+                timeout: this.timeoutMs,
+                rejectUnauthorized: useHttps ? this.options.allowSelfSignedCertificate === false : undefined,
+            }, response => {
+                response.setEncoding('utf8');
+                let body = '';
+                response.on('data', chunk => {
+                    body += chunk;
+                });
+                response.on('end', () => {
+                    resolve({
+                        statusCode: response.statusCode ?? 0,
+                        statusMessage: response.statusMessage ?? '',
+                        headers: response.headers,
+                        body,
+                    });
+                });
+            });
+            request.on('timeout', () => {
+                request.destroy(new Error(`REGZA request timed out after ${this.timeoutMs}ms`));
+            });
+            request.on('error', reject);
+            request.end();
+        });
+    }
+    parseDigestChallenge(header) {
+        if (!header.toLowerCase().startsWith('digest')) {
+            throw new Error(`Unsupported WWW-Authenticate header: ${header}`);
+        }
+        const values = {};
+        const regex = /([a-zA-Z0-9_-]+)=(?:"([^"]*)"|([^,\s]+))/g;
+        let match;
+        while ((match = regex.exec(header)) !== null) {
+            values[match[1].toLowerCase()] = match[2] ?? match[3] ?? '';
+        }
+        if (!values.realm || !values.nonce) {
+            throw new Error(`Incomplete Digest challenge: ${header}`);
+        }
+        return {
+            realm: values.realm,
+            nonce: values.nonce,
+            qop: values.qop,
+            algorithm: values.algorithm,
+            opaque: values.opaque,
+        };
+    }
+    createDigestAuthorization(path, challenge) {
+        const algorithm = (challenge.algorithm ?? 'MD5').toUpperCase();
+        if (algorithm !== 'MD5') {
+            throw new Error(`Unsupported Digest algorithm from REGZA: ${algorithm}`);
+        }
+        const qop = challenge.qop?.split(',').map(item => item.trim()).includes('auth') ? 'auth' : undefined;
+        const method = 'GET';
+        const nc = '00000001';
+        const cnonce = node_crypto_1.default.randomBytes(8).toString('hex');
+        const ha1 = this.md5(`${this.options.username}:${challenge.realm}:${this.options.password}`);
+        const ha2 = this.md5(`${method}:${path}`);
+        const response = qop
+            ? this.md5(`${ha1}:${challenge.nonce}:${nc}:${cnonce}:${qop}:${ha2}`)
+            : this.md5(`${ha1}:${challenge.nonce}:${ha2}`);
+        const parts = [
+            `username="${this.escapeDigestValue(this.options.username)}"`,
+            `realm="${this.escapeDigestValue(challenge.realm)}"`,
+            `nonce="${this.escapeDigestValue(challenge.nonce)}"`,
+            `uri="${this.escapeDigestValue(path)}"`,
+            `response="${response}"`,
+            `algorithm=${algorithm}`,
+        ];
+        if (challenge.opaque) {
+            parts.push(`opaque="${this.escapeDigestValue(challenge.opaque)}"`);
+        }
+        if (qop) {
+            parts.push(`qop=${qop}`);
+            parts.push(`nc=${nc}`);
+            parts.push(`cnonce="${cnonce}"`);
+        }
+        return `Digest ${parts.join(', ')}`;
+    }
+    md5(value) {
+        return node_crypto_1.default.createHash('md5').update(value).digest('hex');
+    }
+    escapeDigestValue(value) {
+        return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    }
     resolveKey(key) {
         return this.keyMap[key] ?? this.keyMap[key.toLowerCase()] ?? key;
+    }
+    describeError(error) {
+        if (!(error instanceof Error)) {
+            return String(error);
+        }
+        const errorWithCode = error;
+        const details = [error.name, error.message];
+        if (errorWithCode.code) {
+            details.push(`code=${errorWithCode.code}`);
+        }
+        if (errorWithCode.syscall) {
+            details.push(`syscall=${errorWithCode.syscall}`);
+        }
+        return details.join(', ');
     }
 }
 exports.RegzaClient = RegzaClient;
