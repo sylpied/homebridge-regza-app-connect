@@ -18,6 +18,8 @@ class RegzaTvAccessory {
     muted = false;
     currentInput = 1;
     powerProbeRunning = false;
+    navigationModeActive = false;
+    navigationTimer;
     constructor(platform, accessory, device) {
         this.platform = platform;
         this.accessory = accessory;
@@ -119,6 +121,7 @@ class RegzaTvAccessory {
         }
         else {
             await this.client.powerOff();
+            this.endNavigationMode();
         }
         this.active = shouldBeActive;
         this.accessory.context.active = shouldBeActive;
@@ -139,21 +142,30 @@ class RegzaTvAccessory {
         switch (value) {
             case this.platform.Characteristic.RemoteKey.ARROW_UP:
                 await this.client.sendKey('up');
+                this.refreshNavigationTimeout();
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_DOWN:
                 await this.client.sendKey('down');
+                this.refreshNavigationTimeout();
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_LEFT:
                 await this.client.sendKey('left');
+                this.refreshNavigationTimeout();
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_RIGHT:
                 await this.client.sendKey('right');
+                this.refreshNavigationTimeout();
                 break;
             case this.platform.Characteristic.RemoteKey.SELECT:
-                await this.client.sendKey('enter');
+                await this.handleSelectKey();
                 break;
             case this.platform.Characteristic.RemoteKey.BACK:
                 await this.client.sendKey('return');
+                this.endNavigationMode();
+                break;
+            case this.platform.Characteristic.RemoteKey.EXIT:
+                await this.client.sendKey('exit');
+                this.endNavigationMode();
                 break;
             case this.platform.Characteristic.RemoteKey.INFORMATION:
                 await this.client.sendKey('display');
@@ -168,6 +180,46 @@ class RegzaTvAccessory {
                 this.platform.log.debug(`Unsupported HomeKit remote key: ${value}`);
                 break;
         }
+    }
+    async handleSelectKey() {
+        const mode = this.device.selectKeyMode ?? 'guideFirst';
+        if (mode === 'normal' || this.navigationModeActive) {
+            await this.client.sendKey('enter');
+            if (this.navigationModeActive) {
+                this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 5);
+            }
+            return;
+        }
+        const openingKey = mode === 'menuFirst'
+            ? 'menu'
+            : mode === 'quickFirst'
+                ? 'quick'
+                : 'guide';
+        await this.client.sendKey(openingKey);
+        this.navigationModeActive = true;
+        this.refreshNavigationTimeout();
+        this.platform.log.debug(`Navigation mode started for ${this.device.name} using ${openingKey}.`);
+    }
+    refreshNavigationTimeout() {
+        if (!this.navigationModeActive) {
+            return;
+        }
+        const timeoutSeconds = this.device.navigationTimeoutSeconds ?? 60;
+        this.scheduleNavigationReset(timeoutSeconds);
+    }
+    scheduleNavigationReset(timeoutSeconds) {
+        if (this.navigationTimer) {
+            clearTimeout(this.navigationTimer);
+        }
+        this.navigationTimer = setTimeout(() => this.endNavigationMode(), timeoutSeconds * 1000);
+        this.navigationTimer.unref();
+    }
+    endNavigationMode() {
+        if (this.navigationTimer) {
+            clearTimeout(this.navigationTimer);
+            this.navigationTimer = undefined;
+        }
+        this.navigationModeActive = false;
     }
     getInputs() {
         return this.device.inputs?.length ? this.device.inputs : settings_1.DEFAULT_INPUTS;

@@ -26,6 +26,10 @@ const DEFAULT_KEY_MAP = {
     enter: remoteKeys_1.RemoteKeys.ENTER,
     return: remoteKeys_1.RemoteKeys.RETURN,
     display: remoteKeys_1.RemoteKeys.DISPLAY,
+    guide: remoteKeys_1.RemoteKeys.GUIDE,
+    menu: remoteKeys_1.RemoteKeys.MENU,
+    quick: remoteKeys_1.RemoteKeys.QUICK,
+    exit: remoteKeys_1.RemoteKeys.EXIT,
 };
 class RegzaClient {
     options;

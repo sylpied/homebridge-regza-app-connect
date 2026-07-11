@@ -20,6 +20,9 @@ exports.MODEL_PROFILES = {
         pollingInterval: 30,
         enableMutePowerProbe: true,
         powerProbeInterval: 300,
+        selectKeyMode: 'guideFirst',
+        navigationTimeoutSeconds: 60,
+        navigationPostSelectResetSeconds: 5,
     },
 };
 function applyModelProfile(device) {
