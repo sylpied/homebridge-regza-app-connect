@@ -11,6 +11,7 @@ export class RegzaTvAccessory {
   private active = false;
   private muted = false;
   private currentInput = 1;
+  private powerProbeRunning = false;
 
   constructor(
     private readonly platform: RegzaPlatform,
@@ -56,6 +57,7 @@ export class RegzaTvAccessory {
     this.configureSpeaker();
     this.configureInputs();
     this.startStatusPolling();
+    this.startPowerProbing();
   }
 
   private configureTelevision(): void {
@@ -202,6 +204,52 @@ export class RegzaTvAccessory {
     setTimeout(() => void this.pollStatus(), 1000).unref();
   }
 
+  private startPowerProbing(): void {
+    if (this.device.enableMutePowerProbe !== true) {
+      return;
+    }
+
+    const intervalSeconds = this.device.powerProbeInterval ?? 300;
+    const timer = setInterval(() => void this.probePowerStatus(), intervalSeconds * 1000);
+    timer.unref();
+    setTimeout(() => void this.probePowerStatus(), 2000).unref();
+  }
+
+  private async probePowerStatus(): Promise<void> {
+    if (this.powerProbeRunning) {
+      return;
+    }
+
+    this.powerProbeRunning = true;
+    try {
+      const playback = await this.client.getPlaybackStatus();
+      const detectedActive = playback.status === 0 && playback.content_type === 'broadcast'
+        ? true
+        : await this.client.probePowerWithMute();
+
+      if (detectedActive !== this.active) {
+        this.active = detectedActive;
+        this.accessory.context.active = detectedActive;
+        this.tvService.updateCharacteristic(
+          this.platform.Characteristic.Active,
+          detectedActive
+            ? this.platform.Characteristic.Active.ACTIVE
+            : this.platform.Characteristic.Active.INACTIVE,
+        );
+        this.platform.log.info(
+          `REGZA power probe: ${this.device.name} is ${detectedActive ? 'ON' : 'OFF'}.`,
+        );
+      }
+    } catch (error) {
+      this.platform.log.warn(
+        `Unable to probe REGZA power state for ${this.device.name}: ` +
+        `${error instanceof Error ? error.message : String(error)}`,
+      );
+    } finally {
+      this.powerProbeRunning = false;
+    }
+  }
+
   private async pollStatus(): Promise<void> {
     try {
       const [playback, mute] = await Promise.all([
@@ -210,22 +258,6 @@ export class RegzaTvAccessory {
       ]);
 
       if (playback.status === 0) {
-        const detectedActive = playback.content_type !== 'other';
-        if (detectedActive !== this.active) {
-          this.active = detectedActive;
-          this.accessory.context.active = detectedActive;
-          this.tvService.updateCharacteristic(
-            this.platform.Characteristic.Active,
-            detectedActive
-              ? this.platform.Characteristic.Active.ACTIVE
-              : this.platform.Characteristic.Active.INACTIVE,
-          );
-          this.platform.log.info(
-            `REGZA status updated: ${this.device.name} is ${detectedActive ? 'ON' : 'OFF'} ` +
-            `(content_type=${playback.content_type}).`,
-          );
-        }
-
         if (playback.content_type === 'external' && this.currentInput !== 4) {
           this.currentInput = 4;
           this.accessory.context.currentInput = 4;

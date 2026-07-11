@@ -193,6 +193,20 @@
               "maximum": 3600,
               "description": "Polls the REGZA v2 API for power/input and mute status. Verified on 55J10X."
             },
+            "enableMutePowerProbe": {
+              "title": "Enable Mute-based Power Probe",
+              "type": "boolean",
+              "default": true,
+              "description": "Detect ambiguous HDMI/standby power state by toggling mute, reading its state, and immediately restoring it. Verified on 55J10X."
+            },
+            "powerProbeInterval": {
+              "title": "Power Probe Interval Seconds",
+              "type": "integer",
+              "default": 300,
+              "minimum": 30,
+              "maximum": 86400,
+              "description": "Interval for the mute-based power probe. A longer interval reduces brief mute/UI side effects."
+            },
             "keyMap": {
               "title": "Key Map Overrides",
               "type": "object",

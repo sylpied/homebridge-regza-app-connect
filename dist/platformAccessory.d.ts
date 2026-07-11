@@ -11,6 +11,7 @@ export declare class RegzaTvAccessory {
     private active;
     private muted;
     private currentInput;
+    private powerProbeRunning;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
     private configureSpeaker;
@@ -20,6 +21,8 @@ export declare class RegzaTvAccessory {
     private handleRemoteKey;
     private getInputs;
     private startStatusPolling;
+    private startPowerProbing;
+    private probePowerStatus;
     private pollStatus;
     private wake;
     private sleep;

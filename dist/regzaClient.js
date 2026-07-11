@@ -112,6 +112,30 @@ class RegzaClient {
     async getMuteStatus() {
         return this.getJson('/v2/remote/status/mute');
     }
+    async probePowerWithMute() {
+        const before = await this.getMuteStatus();
+        if (before.status !== 0) {
+            throw new Error(`REGZA mute status failed before power probe: status=${before.status}`);
+        }
+        await this.mute();
+        await this.sleep(750);
+        const after = await this.getMuteStatus();
+        if (after.status !== 0) {
+            throw new Error(`REGZA mute status failed during power probe: status=${after.status}`);
+        }
+        const changed = before.mute !== after.mute;
+        if (!changed) {
+            return false;
+        }
+        // The TV is active. Restore the mute state changed by the probe.
+        await this.mute();
+        await this.sleep(750);
+        const restored = await this.getMuteStatus();
+        if (restored.status !== 0 || restored.mute !== before.mute) {
+            throw new Error(`REGZA mute state was not restored after power probe: before=${before.mute}, restored=${restored.mute}`);
+        }
+        return true;
+    }
     async getJson(path) {
         const response = await this.requestWithDigest(path);
         if (response.statusCode === 401) {
@@ -238,6 +262,9 @@ class RegzaClient {
     }
     md5(value) {
         return node_crypto_1.default.createHash('md5').update(value).digest('hex');
+    }
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
     escapeDigestValue(value) {
         return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');

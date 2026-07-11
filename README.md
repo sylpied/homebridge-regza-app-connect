@@ -120,17 +120,23 @@ Existing v0.1.x configurations that only define `powerKey` keep their original t
 
 ## Power state
 
-The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`, then synchronized periodically through `GET /v2/remote/play/status`.
+The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`. Broadcast playback reports a reliable ON state. HDMI playback remains cached as `external` after the 55J10X enters standby, so ambiguous states use a verified mute-state probe:
+
+1. Read the current mute state.
+2. Send mute (`40BF10`).
+3. Read mute again.
+4. An unchanged value means standby; a changed value means ON.
+5. When changed, send mute again and verify the original state was restored.
 
 Verified 55J10X playback states:
 
 | TV state/input | `content_type` | HomeKit state |
 |---|---|---|
-| Standby | `other` | OFF |
+| Standby after broadcast | `other` | Confirmed by mute probe |
 | Terrestrial / BS / CS | `broadcast` | ON |
-| HDMI | `external` | ON |
+| HDMI or standby after HDMI | `external` | Distinguished by mute probe |
 
-Mute is synchronized through `GET /v2/remote/status/mute`. The polling interval is configured per TV with `pollingInterval` and defaults to 30 seconds. Built-in application states have not yet been fully verified.
+Mute is synchronized through `GET /v2/remote/status/mute`. Normal input/mute polling defaults to 30 seconds. The mute-based power probe defaults to every 300 seconds to reduce brief audio/UI side effects and can be controlled with `enableMutePowerProbe` and `powerProbeInterval`. Built-in application states have not yet been fully verified.
 
 ## Investigating another REGZA model
 

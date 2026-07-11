@@ -64,6 +64,22 @@ Verified `play/status` values on 55J10X:
 | Terrestrial / BS / CS | `broadcast` |
 | HDMI | `external` |
 
+Important: 55J10X retains `external` after entering standby from HDMI. The plugin distinguishes this ambiguous state with a reversible mute probe: read mute, send `40BF10`, read mute again, and restore the original value when it changed.
+
+## Models without editable credentials
+
+Some newer REGZA models let users enable REGZA Apps Connect but do not provide editable username/password fields. These models may support PIN-based client registration that issues a Digest user ID and password.
+
+The community reference implementation [9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth) documents the flow:
+
+1. Fix the TV IP address and enable REGZA Apps Connect.
+2. Choose a client user ID in MAC-address format.
+3. Run the registration client while the TV is ON and displaying television normally.
+4. Enter the four-digit PIN displayed by the TV.
+5. Store the returned user ID and generated password securely.
+
+The issued credentials can be used with Digest authentication for `/remote/` and `/v2/remote/` APIs. This registration method is not needed on models such as 55J10X where credentials can be configured directly on the TV. Never commit or publish generated credentials.
+
 ## Investigating another model
 
 1. Enable REGZA Apps Connect and configure credentials on the TV.
@@ -72,4 +88,3 @@ Verified `play/status` values on 55J10X:
 4. Test read-only `GET` endpoints first.
 5. Before testing `POST` or `DELETE`, check every parameter and assume the request may change TV settings, recordings or reservations.
 6. Report the model, firmware/version fields, endpoint, request method and sanitized response in a GitHub issue.
-

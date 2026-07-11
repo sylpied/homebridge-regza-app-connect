@@ -30,6 +30,8 @@ export interface RegzaDeviceConfig {
     powerOnDelaySeconds?: number;
     requestTimeoutMs?: number;
     pollingInterval?: number;
+    enableMutePowerProbe?: boolean;
+    powerProbeInterval?: number;
     inputs?: RegzaInputConfig[];
 }
 export interface RegzaPlatformConfig extends PlatformConfig {

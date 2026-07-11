@@ -18,6 +18,8 @@ exports.MODEL_PROFILES = {
         powerOnDelaySeconds: 2,
         requestTimeoutMs: 5000,
         pollingInterval: 30,
+        enableMutePowerProbe: true,
+        powerProbeInterval: 300,
     },
 };
 function applyModelProfile(device) {
