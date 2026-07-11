@@ -77,6 +77,8 @@ const DEFAULT_KEY_MAP: Record<string, string> = {
   menu: RemoteKeys.MENU,
   quick: RemoteKeys.QUICK,
   exit: RemoteKeys.EXIT,
+  terrestrial: RemoteKeys.TERRESTRIAL,
+  bs: RemoteKeys.BS,
 };
 
 export class RegzaClient {

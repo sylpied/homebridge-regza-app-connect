@@ -2,7 +2,7 @@
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.4.1 includes English and Japanese protocol discovery guides. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.5.0 adds contextual remote arrows and guide auto-close. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -228,12 +228,18 @@
               "description": "After this period without navigation input, the next Select press opens the configured menu again."
             },
             "navigationPostSelectResetSeconds": {
-              "title": "Reset Delay After Select Seconds",
+              "title": "Guide Auto-close Delay Seconds",
               "type": "integer",
-              "default": 5,
+              "default": 15,
               "minimum": 1,
               "maximum": 60,
-              "description": "After a normal Select inside the opened menu, reset navigation mode after this delay. Additional arrows or Select presses postpone the reset."
+              "description": "After a normal Select inside the guide/menu, send Back and close it after this delay. Additional arrows or Select presses restart the timer."
+            },
+            "contextualRemoteArrows": {
+              "title": "Contextual Arrow Buttons",
+              "type": "boolean",
+              "default": true,
+              "description": "Outside navigation mode: Up/Down change channel, Left selects terrestrial, and Right selects BS. Inside the guide/menu they behave as normal arrows."
             },
             "keyMap": {
               "title": "Key Map Overrides",
