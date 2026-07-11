@@ -7,6 +7,7 @@
 - Added `GET /v2/remote/play/status` support. Verified values are `other` in standby, `broadcast` for terrestrial/BS/CS and `external` for HDMI on 55J10X.
 - Added `GET /v2/remote/status/mute` support.
 - Persisted the last known power, input and mute state in the Homebridge accessory context.
+- Added a protocol discovery guide documenting `/v2/remote/support`, `/public/feature`, verified read-only endpoints and a safe workflow for investigating other REGZA models.
 
 ### Fixed
 - Corrected the Config UI default input keys to match the verified 55J10X keys.

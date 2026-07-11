@@ -132,6 +132,16 @@ Verified 55J10X playback states:
 
 Mute is synchronized through `GET /v2/remote/status/mute`. The polling interval is configured per TV with `pollingInterval` and defaults to 30 seconds. Built-in application states have not yet been fully verified.
 
+## Investigating another REGZA model
+
+Compatible TVs may publish their supported v2 commands at:
+
+```text
+https://TV_IP:4430/v2/remote/support
+```
+
+See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
+
 ## Install locally
 
 ```bash
