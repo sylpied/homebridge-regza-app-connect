@@ -72,7 +72,7 @@ GET /v2/remote/settings/channel_list
 
 比較的新しいREGZAの一部では、レグザAppsコネクトを有効にできても、テレビの設定画面にユーザー名／パスワード欄がありません。このような機種では、PINを使ったクライアント登録によりDigest認証用のユーザーIDとパスワードを発行できる場合があります。
 
-コミュニティによる参考実装[9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth)では、次の流れが説明されています。
+コミュニティによる参考実装[9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth)では、次の流れが説明されています（[関連するX投稿](https://x.com/9SQ/status/1357970437683040257)）。
 
 1. テレビのIPアドレスを固定し、レグザAppsコネクトを有効にする
 2. MACアドレス形式のクライアントユーザーIDを決める
@@ -90,4 +90,3 @@ GET /v2/remote/settings/channel_list
 4. 最初に読み取り専用の`GET` APIを検証する
 5. `POST`や`DELETE`を試す前に全パラメーターを確認し、テレビ設定、録画、予約などが変更される可能性を想定する
 6. 機種名、ファームウェア／バージョン情報、APIパス、HTTPメソッド、機密情報を削除したレスポンスをGitHub Issueへ報告する
-
