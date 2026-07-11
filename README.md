@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.2.1
+# homebridge-regza-app-connect v0.3.0
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -11,6 +11,7 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 - Separate Power ON/OFF keys
 - Toggle power key fallback for legacy models
 - Model profile support
+- REGZA v2 power, input and mute status polling
 - Verified on REGZA 55J10X
 
 ## Verified behavior on REGZA 55J10X
@@ -58,7 +59,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.2.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.3.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -119,12 +120,38 @@ Existing v0.1.x configurations that only define `powerKey` keep their original t
 
 ## Power state
 
-The HomeKit power state is updated optimistically after REGZA returns HTTP `200 OK` with body `0`. Responses `1` and `2` are treated as command failures and do not update the HomeKit state.
+The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`. Broadcast playback reports a reliable ON state. HDMI playback remains cached as `external` after the 55J10X enters standby, so ambiguous states use a verified mute-state probe:
+
+1. Read the current mute state.
+2. Send mute (`40BF10`).
+3. Read mute again.
+4. An unchanged value means standby; a changed value means ON.
+5. When changed, send mute again and verify the original state was restored.
+
+Verified 55J10X playback states:
+
+| TV state/input | `content_type` | HomeKit state |
+|---|---|---|
+| Standby after broadcast | `other` | Confirmed by mute probe |
+| Terrestrial / BS / CS | `broadcast` | ON |
+| HDMI or standby after HDMI | `external` | Distinguished by mute probe |
+
+Mute is synchronized through `GET /v2/remote/status/mute`. Normal input/mute polling defaults to 30 seconds. The mute-based power probe defaults to every 300 seconds to reduce brief audio/UI side effects and can be controlled with `enableMutePowerProbe` and `powerProbeInterval`. Built-in application states have not yet been fully verified.
+
+## Investigating another REGZA model
+
+Compatible TVs may publish their supported v2 commands at:
+
+```text
+https://TV_IP:4430/v2/remote/support
+```
+
+See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
 
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.2.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.3.0.tgz
 ```
 
 Then restart Homebridge.

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+- Added periodic power, input and mute synchronization through the REGZA v2 status API.
+- Added `GET /v2/remote/play/status` support. Verified values are `other` in standby, `broadcast` for terrestrial/BS/CS and `external` for HDMI on 55J10X.
+- Added `GET /v2/remote/status/mute` support.
+- Persisted the last known power, input and mute state in the Homebridge accessory context.
+- Added a protocol discovery guide documenting `/v2/remote/support`, `/public/feature`, verified read-only endpoints and a safe workflow for investigating other REGZA models.
+- Added a verified mute-state power probe for ambiguous HDMI/standby status. The probe restores the original mute state and runs at a separately configurable interval.
+- Documented PIN-based Digest credential registration for REGZA models that do not expose username/password settings on the TV.
+
+### Fixed
+- Corrected the Config UI default input keys to match the verified 55J10X keys.
+
+### Limitations
+- HDMI playback status remains cached in standby on 55J10X, so HDMI/standby detection uses the mute-state probe instead of `content_type` alone.
+- The probe briefly toggles mute and may display the TV's mute indicator. It defaults to a five-minute interval.
+- Some built-in apps may return an unverified playback content type.
+
 ## 0.2.1
 
 ### Fixed

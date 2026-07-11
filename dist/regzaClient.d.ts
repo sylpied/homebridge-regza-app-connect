@@ -18,6 +18,18 @@ export interface RegzaClientOptions {
     powerOffKey?: string;
     powerToggleKey?: string;
 }
+export interface RegzaPlaybackStatus {
+    status: number;
+    content_type: string;
+    epg_info_current: {
+        channel?: string;
+        channel_name?: string;
+    } | null;
+}
+export interface RegzaMuteStatus {
+    status: number;
+    mute: 'on' | 'off';
+}
 export declare class RegzaClient {
     private readonly options;
     private readonly protocol;
@@ -35,11 +47,16 @@ export declare class RegzaClient {
     mute(): Promise<void>;
     channelUp(): Promise<void>;
     channelDown(): Promise<void>;
+    getPlaybackStatus(): Promise<RegzaPlaybackStatus>;
+    getMuteStatus(): Promise<RegzaMuteStatus>;
+    probePowerWithMute(): Promise<boolean>;
+    private getJson;
     private requestWithDigest;
     private request;
     private parseDigestChallenge;
     private createDigestAuthorization;
     private md5;
+    private sleep;
     private escapeDigestValue;
     private resolveKey;
     private describeError;
