@@ -12,7 +12,7 @@
 ### Configuration
 - Added `selectKeyMode`: `guideFirst`, `menuFirst`, `quickFirst` or `normal`.
 - Added `navigationTimeoutSeconds`, defaulting to 60 seconds.
-- Added `navigationPostSelectResetSeconds`, defaulting to 3 seconds.
+- Added `navigationPostSelectResetSeconds`, defaulting to 5 seconds.
 
 ## 0.3.0
 

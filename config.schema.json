@@ -230,7 +230,7 @@
             "navigationPostSelectResetSeconds": {
               "title": "Reset Delay After Select Seconds",
               "type": "integer",
-              "default": 3,
+              "default": 5,
               "minimum": 1,
               "maximum": 60,
               "description": "After a normal Select inside the opened menu, reset navigation mode after this delay. Additional arrows or Select presses postpone the reset."

@@ -186,7 +186,7 @@ class RegzaTvAccessory {
         if (mode === 'normal' || this.navigationModeActive) {
             await this.client.sendKey('enter');
             if (this.navigationModeActive) {
-                this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 3);
+                this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 5);
             }
             return;
         }
