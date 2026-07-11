@@ -181,7 +181,7 @@ export class RegzaTvAccessory {
           await this.client.sendKey('left');
           this.refreshNavigationTimeout();
         } else {
-          await this.client.sendKey('terrestrial');
+          await this.toggleTerrestrialBs();
         }
         break;
       case this.platform.Characteristic.RemoteKey.ARROW_RIGHT:
@@ -189,7 +189,7 @@ export class RegzaTvAccessory {
           await this.client.sendKey('right');
           this.refreshNavigationTimeout();
         } else {
-          await this.client.sendKey('bs');
+          await this.toggleTerrestrialBs();
         }
         break;
       case this.platform.Characteristic.RemoteKey.SELECT:
@@ -240,6 +240,17 @@ export class RegzaTvAccessory {
     this.refreshNavigationTimeout();
     this.platform.log.debug(
       `Navigation mode started for ${this.device.name} using ${openingKey}.`,
+    );
+  }
+
+  private async toggleTerrestrialBs(): Promise<void> {
+    const targetIdentifier = this.currentInput === 1 ? 2 : 1;
+    await this.client.sendKey(targetIdentifier === 2 ? 'bs' : 'terrestrial');
+    this.currentInput = targetIdentifier;
+    this.accessory.context.currentInput = targetIdentifier;
+    this.tvService.updateCharacteristic(
+      this.platform.Characteristic.ActiveIdentifier,
+      targetIdentifier,
     );
   }
 
