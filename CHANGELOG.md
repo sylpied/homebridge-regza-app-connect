@@ -6,11 +6,13 @@
 - Added a configurable navigation mode for the HomeKit TV remote.
 - The first Select press can open the program guide, settings menu or quick menu; later Select presses send the normal Enter key.
 - Back, Exit, Power OFF and an inactivity timeout reset navigation mode.
+- After a normal Select inside the opened menu, navigation mode resets after a short configurable delay; further navigation postpones the reset.
 - Added REGZA keys for program guide (`40BF6E`), settings menu (`40BFD0`), quick menu (`40BF27`) and exit (`40BF3C`).
 
 ### Configuration
 - Added `selectKeyMode`: `guideFirst`, `menuFirst`, `quickFirst` or `normal`.
 - Added `navigationTimeoutSeconds`, defaulting to 60 seconds.
+- Added `navigationPostSelectResetSeconds`, defaulting to 3 seconds.
 
 ## 0.3.0
 

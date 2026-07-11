@@ -156,7 +156,8 @@ The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can
 ```json
 {
   "selectKeyMode": "guideFirst",
-  "navigationTimeoutSeconds": 60
+  "navigationTimeoutSeconds": 60,
+  "navigationPostSelectResetSeconds": 3
 }
 ```
 
@@ -165,7 +166,9 @@ The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can
 - `quickFirst`: first Select opens the quick menu (`40BF27`)
 - `normal`: every Select sends Enter (`40BF3D`)
 
-Back, Exit, Power OFF, or the inactivity timeout resets navigation mode. The plugin cannot observe a menu being closed with the physical remote, so the timeout acts as a fallback.
+After a normal Select inside the guide/menu, navigation mode resets after three seconds. Additional arrows or Select presses during that delay postpone the reset, allowing confirmation dialogs to be completed. This means that after selecting a program and starting playback, the next Select opens the guide again without requiring Back first.
+
+Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation mode. The plugin cannot directly observe a menu being closed with the physical remote, so these timers act as fallbacks.
 
 ## Install locally
 

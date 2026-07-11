@@ -185,7 +185,9 @@ class RegzaTvAccessory {
         const mode = this.device.selectKeyMode ?? 'guideFirst';
         if (mode === 'normal' || this.navigationModeActive) {
             await this.client.sendKey('enter');
-            this.refreshNavigationTimeout();
+            if (this.navigationModeActive) {
+                this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 3);
+            }
             return;
         }
         const openingKey = mode === 'menuFirst'
@@ -202,10 +204,13 @@ class RegzaTvAccessory {
         if (!this.navigationModeActive) {
             return;
         }
+        const timeoutSeconds = this.device.navigationTimeoutSeconds ?? 60;
+        this.scheduleNavigationReset(timeoutSeconds);
+    }
+    scheduleNavigationReset(timeoutSeconds) {
         if (this.navigationTimer) {
             clearTimeout(this.navigationTimer);
         }
-        const timeoutSeconds = this.device.navigationTimeoutSeconds ?? 60;
         this.navigationTimer = setTimeout(() => this.endNavigationMode(), timeoutSeconds * 1000);
         this.navigationTimer.unref();
     }

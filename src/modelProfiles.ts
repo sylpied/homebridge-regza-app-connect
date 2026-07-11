@@ -23,6 +23,7 @@ export const MODEL_PROFILES: Record<string, Partial<RegzaDeviceConfig>> = {
     powerProbeInterval: 300,
     selectKeyMode: 'guideFirst',
     navigationTimeoutSeconds: 60,
+    navigationPostSelectResetSeconds: 3,
   },
 };
 

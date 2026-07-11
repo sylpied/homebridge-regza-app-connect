@@ -205,7 +205,9 @@ export class RegzaTvAccessory {
     const mode = this.device.selectKeyMode ?? 'guideFirst';
     if (mode === 'normal' || this.navigationModeActive) {
       await this.client.sendKey('enter');
-      this.refreshNavigationTimeout();
+      if (this.navigationModeActive) {
+        this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 3);
+      }
       return;
     }
 
@@ -227,10 +229,14 @@ export class RegzaTvAccessory {
       return;
     }
 
+    const timeoutSeconds = this.device.navigationTimeoutSeconds ?? 60;
+    this.scheduleNavigationReset(timeoutSeconds);
+  }
+
+  private scheduleNavigationReset(timeoutSeconds: number): void {
     if (this.navigationTimer) {
       clearTimeout(this.navigationTimer);
     }
-    const timeoutSeconds = this.device.navigationTimeoutSeconds ?? 60;
     this.navigationTimer = setTimeout(() => this.endNavigationMode(), timeoutSeconds * 1000);
     this.navigationTimer.unref();
   }

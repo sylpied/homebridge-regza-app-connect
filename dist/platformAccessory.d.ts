@@ -23,6 +23,7 @@ export declare class RegzaTvAccessory {
     private handleRemoteKey;
     private handleSelectKey;
     private refreshNavigationTimeout;
+    private scheduleNavigationReset;
     private endNavigationMode;
     private getInputs;
     private startStatusPolling;

@@ -35,6 +35,7 @@ export interface RegzaDeviceConfig {
     powerProbeInterval?: number;
     selectKeyMode?: SelectKeyMode;
     navigationTimeoutSeconds?: number;
+    navigationPostSelectResetSeconds?: number;
     inputs?: RegzaInputConfig[];
 }
 export interface RegzaPlatformConfig extends PlatformConfig {
