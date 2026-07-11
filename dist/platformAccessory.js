@@ -18,6 +18,7 @@ class RegzaTvAccessory {
     muted = false;
     currentInput = 1;
     powerProbeRunning = false;
+    powerStateConfirmedAt = 0;
     navigationModeActive = false;
     navigationSelectionMade = false;
     navigationTimer;
@@ -65,7 +66,10 @@ class RegzaTvAccessory {
             .setCharacteristic(this.platform.Characteristic.ConfiguredName, this.device.name)
             .setCharacteristic(this.platform.Characteristic.SleepDiscoveryMode, this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
         this.tvService.getCharacteristic(this.platform.Characteristic.Active)
-            .onGet(() => this.active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE)
+            .onGet(() => {
+            void this.probePowerStatus(false);
+            return this.active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
+        })
             .onSet(async (value) => this.setActive(value));
         this.tvService.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
             .onGet(() => this.currentInput)
@@ -124,11 +128,7 @@ class RegzaTvAccessory {
             await this.client.powerOff();
             this.endNavigationMode();
         }
-        this.active = shouldBeActive;
-        this.accessory.context.active = shouldBeActive;
-        this.tvService.updateCharacteristic(this.platform.Characteristic.Active, shouldBeActive
-            ? this.platform.Characteristic.Active.ACTIVE
-            : this.platform.Characteristic.Active.INACTIVE);
+        this.updatePowerState(shouldBeActive, true);
     }
     async setInput(identifier) {
         this.currentInput = identifier;
@@ -297,13 +297,21 @@ class RegzaTvAccessory {
         if (this.device.enableMutePowerProbe !== true) {
             return;
         }
-        const intervalSeconds = this.device.powerProbeInterval ?? 300;
-        const timer = setInterval(() => void this.probePowerStatus(), intervalSeconds * 1000);
+        const intervalSeconds = this.device.powerProbeInterval ?? 60;
+        const timer = setInterval(() => void this.probePowerStatus(false), intervalSeconds * 1000);
         timer.unref();
-        setTimeout(() => void this.probePowerStatus(), 2000).unref();
+        setTimeout(() => void this.probePowerStatus(true), 2000).unref();
     }
-    async probePowerStatus() {
+    async probePowerStatus(force) {
         if (this.powerProbeRunning) {
+            return;
+        }
+        const intervalMs = (this.device.powerProbeInterval ?? 60) * 1000;
+        if (!force && Date.now() - this.powerStateConfirmedAt < intervalMs) {
+            return;
+        }
+        // Avoid showing the mute overlay while the user is navigating a TV menu.
+        if (this.navigationModeActive) {
             return;
         }
         this.powerProbeRunning = true;
@@ -312,12 +320,9 @@ class RegzaTvAccessory {
             const detectedActive = playback.status === 0 && playback.content_type === 'broadcast'
                 ? true
                 : await this.client.probePowerWithMute();
-            if (detectedActive !== this.active) {
-                this.active = detectedActive;
-                this.accessory.context.active = detectedActive;
-                this.tvService.updateCharacteristic(this.platform.Characteristic.Active, detectedActive
-                    ? this.platform.Characteristic.Active.ACTIVE
-                    : this.platform.Characteristic.Active.INACTIVE);
+            const changed = detectedActive !== this.active;
+            this.updatePowerState(detectedActive, true);
+            if (changed) {
                 this.platform.log.info(`REGZA power probe: ${this.device.name} is ${detectedActive ? 'ON' : 'OFF'}.`);
             }
         }
@@ -342,6 +347,7 @@ class RegzaTvAccessory {
                     this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, 4);
                 }
                 else if (playback.content_type === 'broadcast') {
+                    this.updatePowerState(true, true);
                     const channel = playback.epg_info_current?.channel ?? '';
                     const inputIdentifier = channel.startsWith('JP-G0004')
                         ? 2
@@ -379,6 +385,16 @@ class RegzaTvAccessory {
                 resolve();
             });
         });
+    }
+    updatePowerState(active, confirmed) {
+        this.active = active;
+        this.accessory.context.active = active;
+        if (confirmed) {
+            this.powerStateConfirmedAt = Date.now();
+        }
+        this.tvService.updateCharacteristic(this.platform.Characteristic.Active, active
+            ? this.platform.Characteristic.Active.ACTIVE
+            : this.platform.Characteristic.Active.INACTIVE);
     }
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
