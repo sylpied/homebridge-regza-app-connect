@@ -32,6 +32,7 @@ const DEFAULT_KEY_MAP = {
     exit: remoteKeys_1.RemoteKeys.EXIT,
     terrestrial: remoteKeys_1.RemoteKeys.TERRESTRIAL,
     bs: remoteKeys_1.RemoteKeys.BS,
+    cs: remoteKeys_1.RemoteKeys.CS,
 };
 class RegzaClient {
     options;

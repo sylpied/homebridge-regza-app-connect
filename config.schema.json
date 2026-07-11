@@ -239,7 +239,7 @@
               "title": "Contextual Arrow Buttons",
               "type": "boolean",
               "default": true,
-              "description": "Outside navigation mode: Up/Down change channel and either Left/Right toggles terrestrial and BS. Inside the guide/menu they behave as normal arrows."
+              "description": "Outside navigation mode: Up/Down change channel; Right cycles terrestrial → BS → CS and Left cycles in reverse. Inside the guide/menu they behave as normal arrows."
             },
             "keyMap": {
               "title": "Key Map Overrides",

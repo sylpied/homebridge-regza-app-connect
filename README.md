@@ -190,7 +190,7 @@ The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can
 - `quickFirst`: first Select opens the quick menu (`40BF27`)
 - `normal`: every Select sends Enter (`40BF3D`)
 
-Outside navigation mode, Up/Down change channel and either Left/Right toggles terrestrial and BS. From CS or HDMI, the first toggle returns to terrestrial. Absolute terrestrial/BS/CS/HDMI selection remains available in HomeKit's separate input-selection screen. The first Select opens the configured guide/menu; arrows then become normal directional keys and Select becomes Enter.
+Outside navigation mode, Up/Down change channel. Right cycles terrestrial → BS → CS → terrestrial, while Left cycles in reverse. From HDMI, the first cycle returns to terrestrial. Absolute terrestrial/BS/CS/HDMI selection remains available in HomeKit's separate input-selection screen. The first Select opens the configured guide/menu; arrows then become normal directional keys and Select becomes Enter.
 
 After a selection is made, 15 seconds without another arrow or Select sends Back automatically, closes the guide/menu and exits navigation mode. Additional navigation restarts the timer. The next Select can therefore open the guide again without requiring a manual Back press.
 

@@ -165,7 +165,7 @@ class RegzaTvAccessory {
                     this.refreshNavigationTimeout();
                 }
                 else {
-                    await this.toggleTerrestrialBs();
+                    await this.cycleBroadcastBand(-1);
                 }
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_RIGHT:
@@ -174,7 +174,7 @@ class RegzaTvAccessory {
                     this.refreshNavigationTimeout();
                 }
                 else {
-                    await this.toggleTerrestrialBs();
+                    await this.cycleBroadcastBand(1);
                 }
                 break;
             case this.platform.Characteristic.RemoteKey.SELECT:
@@ -223,9 +223,14 @@ class RegzaTvAccessory {
         this.refreshNavigationTimeout();
         this.platform.log.debug(`Navigation mode started for ${this.device.name} using ${openingKey}.`);
     }
-    async toggleTerrestrialBs() {
-        const targetIdentifier = this.currentInput === 1 ? 2 : 1;
-        await this.client.sendKey(targetIdentifier === 2 ? 'bs' : 'terrestrial');
+    async cycleBroadcastBand(direction) {
+        const broadcastIdentifiers = [1, 2, 3];
+        const currentIndex = broadcastIdentifiers.indexOf(this.currentInput);
+        const targetIdentifier = currentIndex === -1
+            ? 1
+            : broadcastIdentifiers[(currentIndex + direction + broadcastIdentifiers.length) % broadcastIdentifiers.length];
+        const targetKey = targetIdentifier === 2 ? 'bs' : targetIdentifier === 3 ? 'cs' : 'terrestrial';
+        await this.client.sendKey(targetKey);
         this.currentInput = targetIdentifier;
         this.accessory.context.currentInput = targetIdentifier;
         this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, targetIdentifier);
