@@ -1,5 +1,7 @@
 # REGZA App Connect protocol discovery
 
+English | [日本語](PROTOCOL.ja.md)
+
 Some REGZA models expose a self-describing v2 API. Querying the support endpoint is the recommended first step when investigating a new model.
 
 ## Supported-command discovery
@@ -70,7 +72,7 @@ Important: 55J10X retains `external` after entering standby from HDMI. The plugi
 
 Some newer REGZA models let users enable REGZA Apps Connect but do not provide editable username/password fields. These models may support PIN-based client registration that issues a Digest user ID and password.
 
-The community reference implementation [9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth) documents the flow:
+The community reference implementation [9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth) documents the flow (see also [the related X post](https://x.com/9SQ/status/1357970437683040257)):
 
 1. Fix the TV IP address and enable REGZA Apps Connect.
 2. Choose a client user ID in MAC-address format.

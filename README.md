@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.4.0
+# homebridge-regza-app-connect v0.4.1
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -52,6 +52,29 @@ Complete these steps on the TV before configuring Homebridge. Menu names vary by
 - Wake on LAN is optional for models that cannot turn on through their remote API. When enabled, configure the MAC address of the TV's active network adapter and enable the TV's remote-power/network-standby setting. Standby power consumption may increase.
 - A MAC address is otherwise optional, but supplying it gives the HomeKit accessory a stable identity if the TV's IP address later changes.
 
+### When the username and password are unknown
+
+REGZA generations use two different credential setup methods.
+
+#### Models with username/password fields on the TV
+
+On models such as 55J10X, enter credentials in REGZA Apps Connect Settings, then enter the same values in this plugin.
+
+#### Models without username/password fields on the TV
+
+Some newer models issue Digest credentials through four-digit PIN client registration. The community tool [9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth) documents this procedure:
+
+1. Fix the TV IP address and enable REGZA Apps Connect.
+2. Set the TV IP in `register.py`.
+3. Choose a client `user_id` in MAC-address format, for example `AA-AA-AA-AA-AA-AA`.
+4. Install the requirements with `pip3 install -r requirements.txt`.
+5. Turn the TV ON, close settings screens, and leave it in normal television viewing mode.
+6. Run `python3 register.py`.
+7. Enter the four-digit PIN displayed on the TV.
+8. Enter the returned `user_id` and `user_pw` as this plugin's username and password.
+
+The issued credentials work with Digest authentication for `/remote/` and `/v2/remote/`. Store them securely and never post them in GitHub issues or logs. References: [the original X post by 9SQ](https://x.com/9SQ/status/1357970437683040257), [registration tool and instructions](https://github.com/9SQ/regza-digest-auth), and the [protocol discovery guide](docs/PROTOCOL.md).
+
 See the [official J10X instruction manual](https://cs.regza.com/document/manual/87826_01.pdf) for the model-specific network, REGZA Apps Connect and remote-power menus.
 
 ### HDMI input
@@ -60,7 +83,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.4.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.4.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -147,7 +170,7 @@ Compatible TVs may publish their supported v2 commands at:
 https://TV_IP:4430/v2/remote/support
 ```
 
-See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
+See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) ([日本語](docs/PROTOCOL.ja.md)) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
 
 ## HomeKit remote navigation mode
 
@@ -173,7 +196,7 @@ Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation m
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.1.tgz
 ```
 
 Then restart Homebridge.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.1
+
+### Documentation
+- Added a complete Japanese translation of the REGZA App Connect protocol discovery guide.
+- Added reciprocal language links between the English and Japanese protocol guides.
+- Updated the Japanese README to link directly to the Japanese guide.
+- Added credential-setup decision guidance and detailed PIN-registration steps to both READMEs.
+
 ## 0.4.0
 
 ### Added

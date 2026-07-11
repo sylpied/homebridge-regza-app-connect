@@ -2,7 +2,7 @@
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.4.0 adds HomeKit remote navigation mode. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.4.1 includes English and Japanese protocol discovery guides. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
