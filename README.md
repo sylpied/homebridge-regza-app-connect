@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.2.1
+# homebridge-regza-app-connect v0.3.0
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -11,6 +11,7 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 - Separate Power ON/OFF keys
 - Toggle power key fallback for legacy models
 - Model profile support
+- REGZA v2 power, input and mute status polling
 - Verified on REGZA 55J10X
 
 ## Verified behavior on REGZA 55J10X
@@ -58,7 +59,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.2.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.3.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -119,12 +120,22 @@ Existing v0.1.x configurations that only define `powerKey` keep their original t
 
 ## Power state
 
-The HomeKit power state is updated optimistically after REGZA returns HTTP `200 OK` with body `0`. Responses `1` and `2` are treated as command failures and do not update the HomeKit state.
+The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`, then synchronized periodically through `GET /v2/remote/play/status`.
+
+Verified 55J10X playback states:
+
+| TV state/input | `content_type` | HomeKit state |
+|---|---|---|
+| Standby | `other` | OFF |
+| Terrestrial / BS / CS | `broadcast` | ON |
+| HDMI | `external` | ON |
+
+Mute is synchronized through `GET /v2/remote/status/mute`. The polling interval is configured per TV with `pollingInterval` and defaults to 30 seconds. Built-in application states have not yet been fully verified.
 
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.2.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.3.0.tgz
 ```
 
 Then restart Homebridge.

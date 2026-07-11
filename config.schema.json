@@ -2,7 +2,7 @@
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.2.0 adds model profiles and separate Power ON/OFF keys. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.3.0 adds power, input and mute status polling through the REGZA v2 API. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -190,7 +190,8 @@
               "type": "integer",
               "default": 30,
               "minimum": 5,
-              "maximum": 3600
+              "maximum": 3600,
+              "description": "Polls the REGZA v2 API for power/input and mute status. Verified on 55J10X."
             },
             "keyMap": {
               "title": "Key Map Overrides",
@@ -198,7 +199,7 @@
               "additionalProperties": {
                 "type": "string"
               },
-              "description": "Optional command name to REGZA hex key mapping, e.g. {\"volumeUp\":\"40BF1B\"}."
+              "description": "Optional command name to REGZA hex key mapping, e.g. {\"volumeUp\":\"40BF1A\"}."
             },
             "inputs": {
               "title": "Inputs",
@@ -206,38 +207,23 @@
               "default": [
                 {
                   "name": "地デジ",
-                  "key": "40BF26",
+                  "key": "40BF7A",
                   "identifier": 1
                 },
                 {
                   "name": "BS",
-                  "key": "40BFC4",
+                  "key": "40BF7C",
                   "identifier": 2
                 },
                 {
                   "name": "CS",
-                  "key": "40BE64",
+                  "key": "40BF7D",
                   "identifier": 3
                 },
                 {
-                  "name": "HDMI 1",
-                  "key": "40BF7A",
+                  "name": "HDMI (Next Active)",
+                  "key": "40BF3A",
                   "identifier": 4
-                },
-                {
-                  "name": "HDMI 2",
-                  "key": "40BF7C",
-                  "identifier": 5
-                },
-                {
-                  "name": "HDMI 3",
-                  "key": "40BF7D",
-                  "identifier": 6
-                },
-                {
-                  "name": "HDMI 4",
-                  "key": "40BF60",
-                  "identifier": 7
                 }
               ],
               "items": {
@@ -251,12 +237,12 @@
                   "name": {
                     "title": "Display Name",
                     "type": "string",
-                    "default": "HDMI 1"
+                    "default": "HDMI (Next Active)"
                   },
                   "key": {
                     "title": "REGZA Remote Key",
                     "type": "string",
-                    "default": "40BF7A"
+                    "default": "40BF3A"
                   },
                   "identifier": {
                     "title": "HomeKit Identifier",

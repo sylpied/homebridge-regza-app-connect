@@ -32,6 +32,20 @@ interface SimpleResponse {
   body: string;
 }
 
+export interface RegzaPlaybackStatus {
+  status: number;
+  content_type: string;
+  epg_info_current: {
+    channel?: string;
+    channel_name?: string;
+  } | null;
+}
+
+export interface RegzaMuteStatus {
+  status: number;
+  mute: 'on' | 'off';
+}
+
 interface DigestChallenge {
   realm: string;
   nonce: string;
@@ -154,6 +168,30 @@ export class RegzaClient {
     await this.sendKey('channelDown');
   }
 
+  async getPlaybackStatus(): Promise<RegzaPlaybackStatus> {
+    return this.getJson<RegzaPlaybackStatus>('/v2/remote/play/status');
+  }
+
+  async getMuteStatus(): Promise<RegzaMuteStatus> {
+    return this.getJson<RegzaMuteStatus>('/v2/remote/status/mute');
+  }
+
+  private async getJson<T>(path: string): Promise<T> {
+    const response = await this.requestWithDigest(path);
+    if (response.statusCode === 401) {
+      throw new Error('REGZA authentication failed. Check the App Connect username and password.');
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw new Error(`REGZA returned HTTP ${response.statusCode} ${response.statusMessage}`);
+    }
+
+    try {
+      return JSON.parse(response.body) as T;
+    } catch (error) {
+      throw new Error(`REGZA returned invalid JSON for ${path}: ${this.describeError(error)}`);
+    }
+  }
+
   private async requestWithDigest(path: string): Promise<SimpleResponse> {
     const first = await this.request(path);
     if (first.statusCode !== 401) {
@@ -178,7 +216,7 @@ export class RegzaClient {
     const headers: Record<string, string> = {
       'Accept': '*/*',
       'Connection': 'close',
-      'User-Agent': 'homebridge-regza-app-connect/0.2.0',
+      'User-Agent': 'homebridge-regza-app-connect/0.3.0',
     };
 
     if (authorization) {

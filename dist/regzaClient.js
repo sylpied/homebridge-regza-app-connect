@@ -106,6 +106,27 @@ class RegzaClient {
     async channelDown() {
         await this.sendKey('channelDown');
     }
+    async getPlaybackStatus() {
+        return this.getJson('/v2/remote/play/status');
+    }
+    async getMuteStatus() {
+        return this.getJson('/v2/remote/status/mute');
+    }
+    async getJson(path) {
+        const response = await this.requestWithDigest(path);
+        if (response.statusCode === 401) {
+            throw new Error('REGZA authentication failed. Check the App Connect username and password.');
+        }
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+            throw new Error(`REGZA returned HTTP ${response.statusCode} ${response.statusMessage}`);
+        }
+        try {
+            return JSON.parse(response.body);
+        }
+        catch (error) {
+            throw new Error(`REGZA returned invalid JSON for ${path}: ${this.describeError(error)}`);
+        }
+    }
     async requestWithDigest(path) {
         const first = await this.request(path);
         if (first.statusCode !== 401) {
@@ -126,7 +147,7 @@ class RegzaClient {
         const headers = {
             'Accept': '*/*',
             'Connection': 'close',
-            'User-Agent': 'homebridge-regza-app-connect/0.2.0',
+            'User-Agent': 'homebridge-regza-app-connect/0.3.0',
         };
         if (authorization) {
             headers.Authorization = authorization;

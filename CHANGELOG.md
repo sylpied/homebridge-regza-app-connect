@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+- Added periodic power, input and mute synchronization through the REGZA v2 status API.
+- Added `GET /v2/remote/play/status` support. Verified values are `other` in standby, `broadcast` for terrestrial/BS/CS and `external` for HDMI on 55J10X.
+- Added `GET /v2/remote/status/mute` support.
+- Persisted the last known power, input and mute state in the Homebridge accessory context.
+
+### Fixed
+- Corrected the Config UI default input keys to match the verified 55J10X keys.
+
+### Limitations
+- Some built-in apps may return an unverified playback content type. Power synchronization is currently verified for standby, terrestrial, BS, CS and HDMI.
+
 ## 0.2.1
 
 ### Fixed

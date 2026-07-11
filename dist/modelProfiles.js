@@ -17,6 +17,7 @@ exports.MODEL_PROFILES = {
         enableWakeOnLan: false,
         powerOnDelaySeconds: 2,
         requestTimeoutMs: 5000,
+        pollingInterval: 30,
     },
 };
 function applyModelProfile(device) {

@@ -9,6 +9,7 @@ export declare class RegzaTvAccessory {
     private readonly tvService;
     private readonly speakerService;
     private active;
+    private muted;
     private currentInput;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
@@ -18,6 +19,8 @@ export declare class RegzaTvAccessory {
     private setInput;
     private handleRemoteKey;
     private getInputs;
+    private startStatusPolling;
+    private pollStatus;
     private wake;
     private sleep;
 }
