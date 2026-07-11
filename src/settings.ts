@@ -41,6 +41,7 @@ export interface RegzaDeviceConfig {
   selectKeyMode?: SelectKeyMode;
   navigationTimeoutSeconds?: number;
   navigationPostSelectResetSeconds?: number;
+  contextualRemoteArrows?: boolean;
   inputs?: RegzaInputConfig[];
 }
 

@@ -19,6 +19,7 @@ class RegzaTvAccessory {
     currentInput = 1;
     powerProbeRunning = false;
     navigationModeActive = false;
+    navigationSelectionMade = false;
     navigationTimer;
     constructor(platform, accessory, device) {
         this.platform = platform;
@@ -141,20 +142,40 @@ class RegzaTvAccessory {
     async handleRemoteKey(value) {
         switch (value) {
             case this.platform.Characteristic.RemoteKey.ARROW_UP:
-                await this.client.sendKey('up');
-                this.refreshNavigationTimeout();
+                if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
+                    await this.client.sendKey('up');
+                    this.refreshNavigationTimeout();
+                }
+                else {
+                    await this.client.channelUp();
+                }
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_DOWN:
-                await this.client.sendKey('down');
-                this.refreshNavigationTimeout();
+                if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
+                    await this.client.sendKey('down');
+                    this.refreshNavigationTimeout();
+                }
+                else {
+                    await this.client.channelDown();
+                }
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_LEFT:
-                await this.client.sendKey('left');
-                this.refreshNavigationTimeout();
+                if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
+                    await this.client.sendKey('left');
+                    this.refreshNavigationTimeout();
+                }
+                else {
+                    await this.cycleBroadcastBand(-1);
+                }
                 break;
             case this.platform.Characteristic.RemoteKey.ARROW_RIGHT:
-                await this.client.sendKey('right');
-                this.refreshNavigationTimeout();
+                if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
+                    await this.client.sendKey('right');
+                    this.refreshNavigationTimeout();
+                }
+                else {
+                    await this.cycleBroadcastBand(1);
+                }
                 break;
             case this.platform.Characteristic.RemoteKey.SELECT:
                 await this.handleSelectKey();
@@ -186,7 +207,8 @@ class RegzaTvAccessory {
         if (mode === 'normal' || this.navigationModeActive) {
             await this.client.sendKey('enter');
             if (this.navigationModeActive) {
-                this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 5);
+                this.navigationSelectionMade = true;
+                this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 15, true);
             }
             return;
         }
@@ -197,22 +219,59 @@ class RegzaTvAccessory {
                 : 'guide';
         await this.client.sendKey(openingKey);
         this.navigationModeActive = true;
+        this.navigationSelectionMade = false;
         this.refreshNavigationTimeout();
         this.platform.log.debug(`Navigation mode started for ${this.device.name} using ${openingKey}.`);
+    }
+    async cycleBroadcastBand(direction) {
+        const broadcastIdentifiers = [1, 2, 3];
+        const currentIndex = broadcastIdentifiers.indexOf(this.currentInput);
+        const targetIdentifier = currentIndex === -1
+            ? 1
+            : broadcastIdentifiers[(currentIndex + direction + broadcastIdentifiers.length) % broadcastIdentifiers.length];
+        const targetKey = targetIdentifier === 2 ? 'bs' : targetIdentifier === 3 ? 'cs' : 'terrestrial';
+        await this.client.sendKey(targetKey);
+        this.currentInput = targetIdentifier;
+        this.accessory.context.currentInput = targetIdentifier;
+        this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, targetIdentifier);
     }
     refreshNavigationTimeout() {
         if (!this.navigationModeActive) {
             return;
         }
-        const timeoutSeconds = this.device.navigationTimeoutSeconds ?? 60;
-        this.scheduleNavigationReset(timeoutSeconds);
+        if (this.navigationSelectionMade) {
+            this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 15, true);
+        }
+        else {
+            this.scheduleNavigationReset(this.device.navigationTimeoutSeconds ?? 60, false);
+        }
     }
-    scheduleNavigationReset(timeoutSeconds) {
+    scheduleNavigationReset(timeoutSeconds, closeMenu = false) {
         if (this.navigationTimer) {
             clearTimeout(this.navigationTimer);
         }
-        this.navigationTimer = setTimeout(() => this.endNavigationMode(), timeoutSeconds * 1000);
+        this.navigationTimer = setTimeout(() => {
+            if (closeMenu) {
+                void this.closeNavigationMenu();
+            }
+            else {
+                this.endNavigationMode();
+            }
+        }, timeoutSeconds * 1000);
         this.navigationTimer.unref();
+    }
+    async closeNavigationMenu() {
+        try {
+            await this.client.sendKey('return');
+            this.platform.log.debug(`Navigation menu auto-closed for ${this.device.name}.`);
+        }
+        catch (error) {
+            this.platform.log.warn(`Unable to auto-close navigation menu for ${this.device.name}: ` +
+                `${error instanceof Error ? error.message : String(error)}`);
+        }
+        finally {
+            this.endNavigationMode();
+        }
     }
     endNavigationMode() {
         if (this.navigationTimer) {
@@ -220,6 +279,7 @@ class RegzaTvAccessory {
             this.navigationTimer = undefined;
         }
         this.navigationModeActive = false;
+        this.navigationSelectionMade = false;
     }
     getInputs() {
         return this.device.inputs?.length ? this.device.inputs : settings_1.DEFAULT_INPUTS;

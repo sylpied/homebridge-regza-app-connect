@@ -13,6 +13,7 @@ export declare class RegzaTvAccessory {
     private currentInput;
     private powerProbeRunning;
     private navigationModeActive;
+    private navigationSelectionMade;
     private navigationTimer?;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
@@ -22,8 +23,10 @@ export declare class RegzaTvAccessory {
     private setInput;
     private handleRemoteKey;
     private handleSelectKey;
+    private cycleBroadcastBand;
     private refreshNavigationTimeout;
     private scheduleNavigationReset;
+    private closeNavigationMenu;
     private endNavigationMode;
     private getInputs;
     private startStatusPolling;

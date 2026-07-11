@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.0
+
+### Added
+- Added contextual HomeKit arrow behavior for normal viewing and guide/menu navigation.
+- During normal viewing, Up/Down send Channel Up/Down. Right cycles terrestrial → BS → CS; Left cycles in reverse. HDMI returns to terrestrial on the first cycle.
+- After Select opens the guide/menu, all arrows return to normal directional navigation.
+- After a selection is made, 15 seconds without Select/arrow input sends Back automatically and exits navigation mode.
+- Additional Select or arrow input restarts the 15-second auto-close timer.
+
+### Configuration
+- Added `contextualRemoteArrows`, enabled by default for the 55J10X profile.
+- Changed `navigationPostSelectResetSeconds` to a guide auto-close delay, defaulting to 15 seconds.
+
 ## 0.4.1
 
 ### Documentation

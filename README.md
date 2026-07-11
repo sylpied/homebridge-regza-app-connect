@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.4.1
+# homebridge-regza-app-connect v0.5.0
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -83,7 +83,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.4.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.5.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -180,7 +180,8 @@ The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can
 {
   "selectKeyMode": "guideFirst",
   "navigationTimeoutSeconds": 60,
-  "navigationPostSelectResetSeconds": 5
+  "navigationPostSelectResetSeconds": 15,
+  "contextualRemoteArrows": true
 }
 ```
 
@@ -189,14 +190,16 @@ The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can
 - `quickFirst`: first Select opens the quick menu (`40BF27`)
 - `normal`: every Select sends Enter (`40BF3D`)
 
-After a normal Select inside the guide/menu, navigation mode resets after five seconds. Additional arrows or Select presses during that delay postpone the reset, allowing confirmation dialogs to be completed. This means that after selecting a program and starting playback, the next Select opens the guide again without requiring Back first.
+Outside navigation mode, Up/Down change channel. Right cycles terrestrial → BS → CS → terrestrial, while Left cycles in reverse. From HDMI, the first cycle returns to terrestrial. Absolute terrestrial/BS/CS/HDMI selection remains available in HomeKit's separate input-selection screen. The first Select opens the configured guide/menu; arrows then become normal directional keys and Select becomes Enter.
+
+After a selection is made, 15 seconds without another arrow or Select sends Back automatically, closes the guide/menu and exits navigation mode. Additional navigation restarts the timer. The next Select can therefore open the guide again without requiring a manual Back press.
 
 Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation mode. The plugin cannot directly observe a menu being closed with the physical remote, so these timers act as fallbacks.
 
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.1.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.5.0.tgz
 ```
 
 Then restart Homebridge.

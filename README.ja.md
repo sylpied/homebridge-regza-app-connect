@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.4.1
+# homebridge-regza-app-connect v0.5.0
 
 REGZA App Connect / TV Web Interface を使って、HomeKit から REGZA を操作する Homebridge Dynamic Platform Plugin です。
 
@@ -83,7 +83,7 @@ REGZAの世代によって認証情報の準備方法が異なります。
 
 ## 55J10X 推奨設定
 
-v0.4.1 では `55J10X` モデルプロファイルを選び、IPアドレスと App Connect のユーザー名/パスワードだけ入力すれば使えます。
+v0.5.0 では `55J10X` モデルプロファイルを選び、IPアドレスと App Connect のユーザー名/パスワードだけ入力すれば使えます。
 
 ```json
 {
@@ -180,7 +180,8 @@ HomeKitのTVリモコンにはREGZA専用のメニューボタンがありませ
 {
   "selectKeyMode": "guideFirst",
   "navigationTimeoutSeconds": 60,
-  "navigationPostSelectResetSeconds": 5
+  "navigationPostSelectResetSeconds": 15,
+  "contextualRemoteArrows": true
 }
 ```
 
@@ -189,14 +190,16 @@ HomeKitのTVリモコンにはREGZA専用のメニューボタンがありませ
 - `quickFirst`：最初の決定でクイックメニュー`40BF27`
 - `normal`：常に通常の決定`40BF3D`
 
-番組表／メニュー内で通常の決定を送った後、5秒でナビゲーションモードを解除します。その間に矢印または追加の決定を操作すると解除を延期するため、確認ダイアログも操作できます。番組を選んで視聴を開始した後は、戻るを押さなくても次の決定で再び番組表を開けます。
+通常視聴中は、上／下でチャンネルUP／DOWN、右で「地デジ→BS→CS→地デジ」、左で逆順に切り替えます。HDMI表示中の最初の切替は地デジへ戻します。地デジ／BS／CS／HDMIの絶対選択は、HomeKitの既存の入力選択画面から利用できます。最初の決定で設定した番組表／メニューを開くと、矢印は通常の方向キー、決定は通常の決定キーへ切り替わります。
+
+番組表／メニュー内で決定した後、矢印または決定が15秒間押されなければ「戻る」を自動送信し、画面を閉じてナビゲーションモードを解除します。追加操作があれば15秒を再計測します。次の決定では、戻るを手動で押さなくても再び番組表を開けます。
 
 戻る、終了、電源OFF、または長い無操作タイムアウトでも解除します。純正リモコンでメニューを閉じたことはHomebridgeから直接検出できないため、これらのタイマーを補助として使用します。
 
 ## ローカルインストール
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.1.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.5.0.tgz
 ```
 
 その後、Homebridge を再起動してください。

@@ -22,7 +22,8 @@ exports.MODEL_PROFILES = {
         powerProbeInterval: 300,
         selectKeyMode: 'guideFirst',
         navigationTimeoutSeconds: 60,
-        navigationPostSelectResetSeconds: 5,
+        navigationPostSelectResetSeconds: 15,
+        contextualRemoteArrows: true,
     },
 };
 function applyModelProfile(device) {
