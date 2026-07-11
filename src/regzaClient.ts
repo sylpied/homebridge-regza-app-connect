@@ -73,6 +73,10 @@ const DEFAULT_KEY_MAP: Record<string, string> = {
   enter: RemoteKeys.ENTER,
   return: RemoteKeys.RETURN,
   display: RemoteKeys.DISPLAY,
+  guide: RemoteKeys.GUIDE,
+  menu: RemoteKeys.MENU,
+  quick: RemoteKeys.QUICK,
+  exit: RemoteKeys.EXIT,
 };
 
 export class RegzaClient {

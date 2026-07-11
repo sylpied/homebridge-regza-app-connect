@@ -2,7 +2,7 @@
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.3.0 adds power, input and mute status polling through the REGZA v2 API. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.4.0 adds HomeKit remote navigation mode. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -206,6 +206,26 @@
               "minimum": 30,
               "maximum": 86400,
               "description": "Interval for the mute-based power probe. A longer interval reduces brief mute/UI side effects."
+            },
+            "selectKeyMode": {
+              "title": "First Select Button Action",
+              "type": "string",
+              "default": "guideFirst",
+              "oneOf": [
+                { "title": "Open Program Guide, then Select", "enum": ["guideFirst"] },
+                { "title": "Open Settings Menu, then Select", "enum": ["menuFirst"] },
+                { "title": "Open Quick Menu, then Select", "enum": ["quickFirst"] },
+                { "title": "Always send Select", "enum": ["normal"] }
+              ],
+              "description": "Controls the first HomeKit Select press. Back, Exit, Power OFF or timeout resets it."
+            },
+            "navigationTimeoutSeconds": {
+              "title": "Navigation Mode Timeout Seconds",
+              "type": "integer",
+              "default": 60,
+              "minimum": 5,
+              "maximum": 3600,
+              "description": "After this period without navigation input, the next Select press opens the configured menu again."
             },
             "keyMap": {
               "title": "Key Map Overrides",

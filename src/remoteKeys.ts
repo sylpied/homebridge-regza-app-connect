@@ -16,6 +16,10 @@ export const RemoteKeys = {
   ENTER: '40BF3D',
   RETURN: '40BF3B',
   DISPLAY: '40BF1C',
+  GUIDE: '40BF6E',
+  MENU: '40BFD0',
+  QUICK: '40BF27',
+  EXIT: '40BF3C',
 
   TERRESTRIAL: '40BF7A',
   BS: '40BF7C',

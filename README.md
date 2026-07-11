@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.3.0
+# homebridge-regza-app-connect v0.4.0
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -12,6 +12,7 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 - Toggle power key fallback for legacy models
 - Model profile support
 - REGZA v2 power, input and mute status polling
+- Stateful HomeKit remote navigation mode
 - Verified on REGZA 55J10X
 
 ## Verified behavior on REGZA 55J10X
@@ -59,7 +60,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.3.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.4.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -148,10 +149,28 @@ https://TV_IP:4430/v2/remote/support
 
 See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
 
+## HomeKit remote navigation mode
+
+The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can use the first Select press to open a menu, then use later Select presses as the normal Enter key.
+
+```json
+{
+  "selectKeyMode": "guideFirst",
+  "navigationTimeoutSeconds": 60
+}
+```
+
+- `guideFirst`: first Select opens the program guide (`40BF6E`)
+- `menuFirst`: first Select opens settings (`40BFD0`)
+- `quickFirst`: first Select opens the quick menu (`40BF27`)
+- `normal`: every Select sends Enter (`40BF3D`)
+
+Back, Exit, Power OFF, or the inactivity timeout resets navigation mode. The plugin cannot observe a menu being closed with the physical remote, so the timeout acts as a fallback.
+
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.3.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.0.tgz
 ```
 
 Then restart Homebridge.

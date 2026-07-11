@@ -12,6 +12,8 @@ export declare class RegzaTvAccessory {
     private muted;
     private currentInput;
     private powerProbeRunning;
+    private navigationModeActive;
+    private navigationTimer?;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
     private configureSpeaker;
@@ -19,6 +21,9 @@ export declare class RegzaTvAccessory {
     private setActive;
     private setInput;
     private handleRemoteKey;
+    private handleSelectKey;
+    private refreshNavigationTimeout;
+    private endNavigationMode;
     private getInputs;
     private startStatusPolling;
     private startPowerProbing;
