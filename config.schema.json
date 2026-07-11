@@ -2,7 +2,7 @@
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
   "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.5.0 adds contextual remote arrows and guide auto-close. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.5.1 improves power-state responsiveness. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -202,10 +202,10 @@
             "powerProbeInterval": {
               "title": "Power Probe Interval Seconds",
               "type": "integer",
-              "default": 300,
+              "default": 60,
               "minimum": 30,
               "maximum": 86400,
-              "description": "Interval for the mute-based power probe. A longer interval reduces brief mute/UI side effects."
+              "description": "Maximum interval for checking an ambiguous HDMI/standby state. The probe is skipped while the state is fresh, during menu navigation, and when broadcast status already proves the TV is on."
             },
             "selectKeyMode": {
               "title": "First Select Button Action",

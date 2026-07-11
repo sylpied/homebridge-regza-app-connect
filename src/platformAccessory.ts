@@ -12,6 +12,7 @@ export class RegzaTvAccessory {
   private muted = false;
   private currentInput = 1;
   private powerProbeRunning = false;
+  private powerStateConfirmedAt = 0;
   private navigationModeActive = false;
   private navigationSelectionMade = false;
   private navigationTimer?: NodeJS.Timeout;
@@ -69,7 +70,10 @@ export class RegzaTvAccessory {
       .setCharacteristic(this.platform.Characteristic.SleepDiscoveryMode, this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
 
     this.tvService.getCharacteristic(this.platform.Characteristic.Active)
-      .onGet(() => this.active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE)
+      .onGet(() => {
+        void this.probePowerStatus(false);
+        return this.active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
+      })
       .onSet(async value => this.setActive(value));
 
     this.tvService.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
@@ -140,11 +144,7 @@ export class RegzaTvAccessory {
       await this.client.powerOff();
       this.endNavigationMode();
     }
-    this.active = shouldBeActive;
-    this.accessory.context.active = shouldBeActive;
-    this.tvService.updateCharacteristic(this.platform.Characteristic.Active, shouldBeActive
-      ? this.platform.Characteristic.Active.ACTIVE
-      : this.platform.Characteristic.Active.INACTIVE);
+    this.updatePowerState(shouldBeActive, true);
 
   }
 
@@ -328,14 +328,24 @@ export class RegzaTvAccessory {
       return;
     }
 
-    const intervalSeconds = this.device.powerProbeInterval ?? 300;
-    const timer = setInterval(() => void this.probePowerStatus(), intervalSeconds * 1000);
+    const intervalSeconds = this.device.powerProbeInterval ?? 60;
+    const timer = setInterval(() => void this.probePowerStatus(false), intervalSeconds * 1000);
     timer.unref();
-    setTimeout(() => void this.probePowerStatus(), 2000).unref();
+    setTimeout(() => void this.probePowerStatus(true), 2000).unref();
   }
 
-  private async probePowerStatus(): Promise<void> {
+  private async probePowerStatus(force: boolean): Promise<void> {
     if (this.powerProbeRunning) {
+      return;
+    }
+
+    const intervalMs = (this.device.powerProbeInterval ?? 60) * 1000;
+    if (!force && Date.now() - this.powerStateConfirmedAt < intervalMs) {
+      return;
+    }
+
+    // Avoid showing the mute overlay while the user is navigating a TV menu.
+    if (this.navigationModeActive) {
       return;
     }
 
@@ -346,15 +356,9 @@ export class RegzaTvAccessory {
         ? true
         : await this.client.probePowerWithMute();
 
-      if (detectedActive !== this.active) {
-        this.active = detectedActive;
-        this.accessory.context.active = detectedActive;
-        this.tvService.updateCharacteristic(
-          this.platform.Characteristic.Active,
-          detectedActive
-            ? this.platform.Characteristic.Active.ACTIVE
-            : this.platform.Characteristic.Active.INACTIVE,
-        );
+      const changed = detectedActive !== this.active;
+      this.updatePowerState(detectedActive, true);
+      if (changed) {
         this.platform.log.info(
           `REGZA power probe: ${this.device.name} is ${detectedActive ? 'ON' : 'OFF'}.`,
         );
@@ -382,6 +386,7 @@ export class RegzaTvAccessory {
           this.accessory.context.currentInput = 4;
           this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, 4);
         } else if (playback.content_type === 'broadcast') {
+          this.updatePowerState(true, true);
           const channel = playback.epg_info_current?.channel ?? '';
           const inputIdentifier = channel.startsWith('JP-G0004')
             ? 2
@@ -422,6 +427,20 @@ export class RegzaTvAccessory {
         resolve();
       });
     });
+  }
+
+  private updatePowerState(active: boolean, confirmed: boolean): void {
+    this.active = active;
+    this.accessory.context.active = active;
+    if (confirmed) {
+      this.powerStateConfirmedAt = Date.now();
+    }
+    this.tvService.updateCharacteristic(
+      this.platform.Characteristic.Active,
+      active
+        ? this.platform.Characteristic.Active.ACTIVE
+        : this.platform.Characteristic.Active.INACTIVE,
+    );
   }
 
   private sleep(ms: number): Promise<void> {

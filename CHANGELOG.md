@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1
+
+### Changed
+
+- Reduced the default mute-based power probe interval from 300 seconds to 60 seconds so ambiguous HDMI/standby power states are corrected sooner.
+- Clarified the tradeoff between power-detection speed and brief mute/on-screen-display side effects.
+- Skip mute probes while the cached power state is fresh, while navigating menus, or when broadcast playback already confirms that the TV is on.
+- Refresh stale power state when HomeKit requests the Active characteristic.
+
 ## 0.5.0
 
 ### Added

@@ -12,6 +12,7 @@ export declare class RegzaTvAccessory {
     private muted;
     private currentInput;
     private powerProbeRunning;
+    private powerStateConfirmedAt;
     private navigationModeActive;
     private navigationSelectionMade;
     private navigationTimer?;
@@ -34,5 +35,6 @@ export declare class RegzaTvAccessory {
     private probePowerStatus;
     private pollStatus;
     private wake;
+    private updatePowerState;
     private sleep;
 }
