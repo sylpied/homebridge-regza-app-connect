@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.4.0
+# homebridge-regza-app-connect v0.4.1
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -60,7 +60,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.4.0, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.4.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -147,7 +147,7 @@ Compatible TVs may publish their supported v2 commands at:
 https://TV_IP:4430/v2/remote/support
 ```
 
-See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
+See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) ([日本語](docs/PROTOCOL.ja.md)) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
 
 ## HomeKit remote navigation mode
 
@@ -173,7 +173,7 @@ Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation m
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.4.1.tgz
 ```
 
 Then restart Homebridge.

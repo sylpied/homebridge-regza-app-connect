@@ -1,0 +1,93 @@
+# REGZA App Connectプロトコル調査ガイド
+
+[English](PROTOCOL.md) | 日本語
+
+一部のREGZAは、利用可能な機能を取得できるv2 APIを公開しています。未検証機種を調査するときは、最初にサポート情報APIを確認することを推奨します。
+
+## 対応コマンド一覧の取得
+
+REGZA 55J10Xで確認済み：
+
+```text
+GET https://TV_IP:4430/v2/remote/support
+```
+
+このAPIは、レグザAppsコネクトで設定したものと同じユーザー名とパスワードによるHTTP Digest認証を使用します。REGZAはプライベートCAまたは自己署名TLS証明書を使う場合があるため、ローカル環境で`curl`を使って確認するときは`-k`が必要です。
+
+```bash
+curl -k --digest \
+  -u 'REGZA_USERNAME:REGZA_PASSWORD' \
+  'https://TV_IP:4430/v2/remote/support'
+```
+
+レスポンスの`command`配列には、利用可能なAPIが記載されています。各項目の意味：
+
+- `http_method`：必要なHTTPメソッド
+- `resource`：APIのパス
+- `params`：受け付けるパラメーター名
+
+例：
+
+```json
+{
+  "http_method": "GET",
+  "resource": "/v2/remote/status/mute",
+  "params": []
+}
+```
+
+テレビの実IPアドレス、ユーザー名、パスワード、アクセスコード、機器ID、個人情報や機器固有情報を含む完全なレスポンスは公開しないでください。
+
+## 機種・対応機能の取得
+
+次のAPIから、機種とAPI機能に関する情報を取得できます。
+
+```bash
+curl -k \
+  'https://TV_IP:4430/public/feature'
+```
+
+55J10Xでは、`ipc_version`が`v2`で、`V1Support`と`PIN_Auth`に対応していることを確認しています。
+
+## 検証済みの読み取り専用ステータスAPI
+
+```text
+GET /v2/remote/play/status
+GET /v2/remote/status/mute
+GET /v2/remote/status/foreground_dtvapp
+GET /v2/remote/settings/channel_list
+```
+
+55J10Xで確認済みの`play/status`の値：
+
+| テレビの状態／入力 | `content_type` |
+|---|---|
+| スタンバイ | `other` |
+| 地デジ／BS／CS | `broadcast` |
+| HDMI | `external` |
+
+重要：55J10XはHDMI表示からスタンバイへ移行した後も`external`を保持します。そのため、本プラグインでは曖昧な状態を可逆的な消音プローブで判定します。現在の消音状態を取得し、`40BF10`を送信して再度状態を取得します。状態が変化した場合はテレビがONと判断し、もう一度`40BF10`を送って元の消音状態へ復元します。
+
+## ユーザー名・パスワードを設定できない機種
+
+比較的新しいREGZAの一部では、レグザAppsコネクトを有効にできても、テレビの設定画面にユーザー名／パスワード欄がありません。このような機種では、PINを使ったクライアント登録によりDigest認証用のユーザーIDとパスワードを発行できる場合があります。
+
+コミュニティによる参考実装[9SQ/regza-digest-auth](https://github.com/9SQ/regza-digest-auth)では、次の流れが説明されています。
+
+1. テレビのIPアドレスを固定し、レグザAppsコネクトを有効にする
+2. MACアドレス形式のクライアントユーザーIDを決める
+3. テレビをONにし、設定画面などを閉じて通常のテレビ視聴状態で登録クライアントを実行する
+4. テレビに表示された4桁のPINを入力する
+5. 返されたユーザーIDと生成パスワードを安全に保管する
+
+発行された認証情報は、`/remote/`と`/v2/remote/` APIのDigest認証に利用できます。55J10Xのようにテレビ側で認証情報を直接設定できる機種では、この登録作業は不要です。生成された認証情報をGitへコミットしたり、公開したりしないでください。
+
+## 他機種を調査する手順
+
+1. テレビ側でレグザAppsコネクトを有効にし、認証情報を準備する
+2. `/public/feature`を取得し、機種、`ipc_version`、機能名を記録する
+3. `/v2/remote/support`を取得し、コマンド一覧を保存する
+4. 最初に読み取り専用の`GET` APIを検証する
+5. `POST`や`DELETE`を試す前に全パラメーターを確認し、テレビ設定、録画、予約などが変更される可能性を想定する
+6. 機種名、ファームウェア／バージョン情報、APIパス、HTTPメソッド、機密情報を削除したレスポンスをGitHub Issueへ報告する
+

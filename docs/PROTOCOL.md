@@ -1,5 +1,7 @@
 # REGZA App Connect protocol discovery
 
+English | [日本語](PROTOCOL.ja.md)
+
 Some REGZA models expose a self-describing v2 API. Querying the support endpoint is the recommended first step when investigating a new model.
 
 ## Supported-command discovery
