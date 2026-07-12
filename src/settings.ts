@@ -11,6 +11,7 @@ export interface RegzaInputConfig {
 }
 
 export type PowerMode = 'discrete' | 'toggle';
+export type PowerProbeMode = 'operation' | 'interval' | 'optimistic';
 export type SelectKeyMode = 'normal' | 'guideFirst' | 'menuFirst' | 'quickFirst';
 
 export interface RegzaDeviceConfig {
@@ -37,6 +38,7 @@ export interface RegzaDeviceConfig {
   requestTimeoutMs?: number;
   pollingInterval?: number;
   enableMutePowerProbe?: boolean;
+  powerProbeMode?: PowerProbeMode;
   powerProbeInterval?: number;
   selectKeyMode?: SelectKeyMode;
   navigationTimeoutSeconds?: number;

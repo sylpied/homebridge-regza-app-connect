@@ -19,6 +19,7 @@ exports.MODEL_PROFILES = {
         requestTimeoutMs: 5000,
         pollingInterval: 30,
         enableMutePowerProbe: true,
+        powerProbeMode: 'operation',
         powerProbeInterval: 60,
         selectKeyMode: 'guideFirst',
         navigationTimeoutSeconds: 60,
