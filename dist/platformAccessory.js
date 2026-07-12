@@ -66,10 +66,7 @@ class RegzaTvAccessory {
             .setCharacteristic(this.platform.Characteristic.ConfiguredName, this.device.name)
             .setCharacteristic(this.platform.Characteristic.SleepDiscoveryMode, this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
         this.tvService.getCharacteristic(this.platform.Characteristic.Active)
-            .onGet(() => {
-            void this.probePowerStatus(false);
-            return this.active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE;
-        })
+            .onGet(() => this.active ? this.platform.Characteristic.Active.ACTIVE : this.platform.Characteristic.Active.INACTIVE)
             .onSet(async (value) => this.setActive(value));
         this.tvService.getCharacteristic(this.platform.Characteristic.ActiveIdentifier)
             .onGet(() => this.currentInput)
@@ -83,7 +80,7 @@ class RegzaTvAccessory {
             .setCharacteristic(this.platform.Characteristic.VolumeControlType, this.platform.Characteristic.VolumeControlType.RELATIVE);
         this.speakerService.getCharacteristic(this.platform.Characteristic.Mute)
             .onGet(() => this.muted)
-            .onSet(async () => this.client.mute());
+            .onSet(async (value) => this.setMute(Boolean(value)));
         this.speakerService.getCharacteristic(this.platform.Characteristic.VolumeSelector)
             .onSet(async (value) => {
             if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
@@ -137,6 +134,10 @@ class RegzaTvAccessory {
         if (input) {
             this.platform.log.info(`Switching ${this.device.name} to input ${input.name} using key=${input.key}.`);
             await this.client.sendKey(input.key);
+            if (identifier >= 1 && identifier <= 3) {
+                await this.sleep(750);
+                await this.pollStatus();
+            }
         }
     }
     async handleRemoteKey(value) {
@@ -234,6 +235,8 @@ class RegzaTvAccessory {
         this.currentInput = targetIdentifier;
         this.accessory.context.currentInput = targetIdentifier;
         this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, targetIdentifier);
+        await this.sleep(750);
+        await this.pollStatus();
     }
     refreshNavigationTimeout() {
         if (!this.navigationModeActive) {
@@ -294,13 +297,17 @@ class RegzaTvAccessory {
         setTimeout(() => void this.pollStatus(), 1000).unref();
     }
     startPowerProbing() {
-        if (this.device.enableMutePowerProbe !== true) {
+        const mode = this.device.powerProbeMode
+            ?? (this.device.enableMutePowerProbe === false ? 'optimistic' : 'operation');
+        if (mode === 'optimistic') {
             return;
         }
-        const intervalSeconds = this.device.powerProbeInterval ?? 60;
-        const timer = setInterval(() => void this.probePowerStatus(false), intervalSeconds * 1000);
-        timer.unref();
         setTimeout(() => void this.probePowerStatus(true), 2000).unref();
+        if (mode === 'interval') {
+            const intervalSeconds = this.device.powerProbeInterval ?? 60;
+            const timer = setInterval(() => void this.probePowerStatus(false), intervalSeconds * 1000);
+            timer.unref();
+        }
     }
     async probePowerStatus(force) {
         if (this.powerProbeRunning) {
@@ -371,8 +378,33 @@ class RegzaTvAccessory {
             }
         }
         catch (error) {
-            this.platform.log.debug(`Unable to poll REGZA v2 status for ${this.device.name}: ` +
-                `${error instanceof Error ? error.message : String(error)}`);
+            if (this.platform.config.debug === true) {
+                this.platform.log.debug(`Unable to poll REGZA v2 status for ${this.device.name}: ` +
+                    `${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+    }
+    async setMute(targetMuted) {
+        const before = await this.client.getMuteStatus();
+        if (before.status !== 0) {
+            await this.client.mute();
+            return;
+        }
+        const beforeMuted = before.mute === 'on';
+        if (beforeMuted === targetMuted) {
+            this.muted = targetMuted;
+            this.accessory.context.muted = targetMuted;
+            this.speakerService.updateCharacteristic(this.platform.Characteristic.Mute, targetMuted);
+            return;
+        }
+        await this.client.mute();
+        await this.sleep(500);
+        const after = await this.client.getMuteStatus();
+        if (after.status === 0 && (after.mute === 'on') === targetMuted) {
+            this.muted = targetMuted;
+            this.accessory.context.muted = targetMuted;
+            this.speakerService.updateCharacteristic(this.platform.Characteristic.Mute, targetMuted);
+            this.updatePowerState(true, true);
         }
     }
     wake(mac) {

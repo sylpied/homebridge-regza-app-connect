@@ -4,7 +4,7 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./homebridge-ui",
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.6.0 adds a guided Japanese/English settings UI. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.6.1 adds operation-linked power detection without periodic mute interruptions. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -209,7 +209,18 @@
               "title": "Enable Mute-based Power Probe",
               "type": "boolean",
               "default": true,
-              "description": "Detect ambiguous HDMI/standby power state by toggling mute, reading its state, and immediately restoring it. Verified on 55J10X."
+              "description": "Legacy master switch. Keep enabled and select the behavior with Power Probe Mode."
+            },
+            "powerProbeMode": {
+              "title": "Power Probe Mode",
+              "type": "string",
+              "default": "operation",
+              "oneOf": [
+                { "title": "Operation-linked / Startup only (Recommended)", "enum": ["operation"] },
+                { "title": "Periodic mute probe", "enum": ["interval"] },
+                { "title": "Optimistic / Never probe", "enum": ["optimistic"] }
+              ],
+              "description": "Operation-linked mode probes once at startup, then uses HomeKit power, broadcast input, and mute operations to keep state without periodic audio interruption."
             },
             "powerProbeInterval": {
               "title": "Power Probe Interval Seconds",
@@ -217,7 +228,7 @@
               "default": 60,
               "minimum": 30,
               "maximum": 86400,
-              "description": "Maximum interval for checking an ambiguous HDMI/standby state. The probe is skipped while the state is fresh, during menu navigation, and when broadcast status already proves the TV is on."
+              "description": "Used only in Periodic mode. Interval for checking an ambiguous HDMI/standby state."
             },
             "selectKeyMode": {
               "title": "First Select Button Action",

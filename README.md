@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.6.0
+# homebridge-regza-app-connect v0.6.1
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -83,7 +83,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.6.0, the Homebridge custom settings UI groups essential settings first and keeps connection, power, remote, and input options in collapsible sections. Choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.6.1, the Homebridge custom settings UI groups essential settings first and keeps connection, power, remote, and input options in collapsible sections. Choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -160,7 +160,7 @@ Verified 55J10X playback states:
 | Terrestrial / BS / CS | `broadcast` | ON |
 | HDMI or standby after HDMI | `external` | Distinguished by mute probe |
 
-Mute is synchronized through `GET /v2/remote/status/mute`. Normal input/mute polling defaults to 30 seconds. The mute-based power probe has a default maximum interval of 60 seconds, so an ambiguous HDMI/standby state is normally corrected within about one minute. It is skipped when broadcast status already proves the TV is on, immediately after a confirmed power operation, and while navigating a menu. HomeKit state requests also trigger a refresh when the cached result is stale. Configure it with `enableMutePowerProbe` and `powerProbeInterval`. Built-in application states have not yet been fully verified.
+Mute is synchronized through `GET /v2/remote/status/mute`. Normal input/mute polling defaults to 30 seconds and remains active in every probe mode. Whenever periodic playback status reports `broadcast` for terrestrial, BS, or CS, the TV is positively identified as ON. The default `operation` power-probe mode performs one reversible mute probe at Homebridge startup, then avoids periodic audio interruptions. HomeKit power commands, confirmed terrestrial/BS/CS changes, and successful Mute changes also update the remembered state. Select `interval` only when periodic correction of HDMI/standby ambiguity is more important than uninterrupted viewing, or `optimistic` to disable mute probing completely. Built-in application states have not yet been fully verified.
 
 ## Investigating another REGZA model
 
@@ -199,7 +199,7 @@ Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation m
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.6.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.6.1.tgz
 ```
 
 Then restart Homebridge.

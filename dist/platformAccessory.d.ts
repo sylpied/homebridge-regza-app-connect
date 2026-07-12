@@ -34,6 +34,7 @@ export declare class RegzaTvAccessory {
     private startPowerProbing;
     private probePowerStatus;
     private pollStatus;
+    private setMute;
     private wake;
     private updatePowerState;
     private sleep;

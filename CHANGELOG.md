@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.1
+
+### Changed
+
+- Added operation-linked power-state detection and made it the 55J10X default.
+- Operation-linked mode performs one mute probe at startup and does not run periodic mute probes.
+- HomeKit power operations, confirmed broadcast input changes, and successful Mute changes now refresh the optimistic power state.
+- Added selectable Operation-linked, Periodic, and Optimistic probe modes to the custom settings UI.
+- Suppressed recurring status-poll diagnostics unless plugin debug logging is enabled.
+
 ## 0.6.0
 
 ### Added

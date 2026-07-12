@@ -11,7 +11,7 @@
     powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12',
     enableWakeOnLan: false, wakeOnLanAddress: '192.168.100.255', wakeOnLanPort: 2304,
     powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 30,
-    enableMutePowerProbe: true, powerProbeInterval: 60, selectKeyMode: 'guideFirst',
+    enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, selectKeyMode: 'guideFirst',
     navigationTimeoutSeconds: 60, navigationPostSelectResetSeconds: 15,
     contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })),
   });
@@ -60,7 +60,7 @@
         ${input(`${p}-power-off`, t('powerOffKey'), device.powerOffKey)}
       </div>
       <div id="${p}-toggle" class="regza-wide">${input(`${p}-power-toggle`, t('powerToggleKey'), device.powerToggleKey)}</div>
-      ${check(`${p}-mute-probe`, t('muteProbe'), device.enableMutePowerProbe !== false, t('muteProbeHelp'))}
+      ${select(`${p}-probe-mode`, t('probeMode'), device.powerProbeMode || 'operation', [['operation', t('probeOperation')], ['interval', t('probeIntervalMode')], ['optimistic', t('probeOptimistic')]], t('muteProbeHelp'))}
       <div id="${p}-probe-options" class="regza-wide">${input(`${p}-probe-interval`, t('probeInterval'), device.powerProbeInterval, 'number', 'min="30" max="86400"')}</div>
       ${check(`${p}-wol`, t('wol'), device.enableWakeOnLan === true, t('wolHelp'))}
       <div id="${p}-wol-options" class="regza-grid regza-wide">
@@ -96,22 +96,22 @@
   };
   const bindDevice = (device, index) => {
     const p = `d${index}`;
-    [['name','name'],['model','model'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
+    [['name','name'],['model','model'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
     [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
-    [['selfsigned','allowSelfSignedCertificate'],['mute-probe','enableMutePowerProbe'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
-    ['power-mode','mute-probe','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
+    [['selfsigned','allowSelfSignedCertificate'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
+    ['power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
     byId(`${p}-model`)?.addEventListener('change', () => { if (device.model === '55J10X') applyJ10x(device); render(); scheduleUpdate(); });
     document.querySelector(`[data-index="${index}"] .regza-remove-device`).onclick = () => { config.devices.splice(index, 1); render(); scheduleUpdate(); };
     byId(`${p}-add-input`).onclick = () => { device.inputs.push({ name: 'HDMI', key: '40BF3A', identifier: device.inputs.length + 1 }); render(); scheduleUpdate(); };
     renderInputs(device, index);
     updateConditional(device, index);
   };
-  const applyJ10x = (d) => Object.assign(d, { protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', enableMutePowerProbe: true, powerProbeInterval: 60 });
+  const applyJ10x = (d) => Object.assign(d, { protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60 });
   const updateConditional = (device, index) => {
     const p = `d${index}`;
     byId(`${p}-discrete`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
     byId(`${p}-toggle`)?.classList.toggle('d-none', device.powerMode !== 'toggle');
-    byId(`${p}-probe-options`)?.classList.toggle('d-none', device.enableMutePowerProbe === false);
+    byId(`${p}-probe-options`)?.classList.toggle('d-none', device.powerProbeMode !== 'interval');
     byId(`${p}-wol-options`)?.classList.toggle('d-none', device.enableWakeOnLan !== true);
     homebridge.fixScrollHeight?.();
   };
@@ -145,10 +145,11 @@
   const loadTranslations = async () => {
     const hbLanguage = typeof homebridge.i18nCurrentLang === 'function' ? await homebridge.i18nCurrentLang() : navigator.language;
     const language = config.uiLanguage === 'auto' ? ((hbLanguage || '').toLowerCase().startsWith('ja') ? 'ja' : 'en') : config.uiLanguage;
-    try { const response = await fetch(`locales/${language}.json?v=0.6.0`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
+    try { const response = await fetch(`locales/${language}.json?v=0.6.1`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
   };
   const init = async () => {
     const blocks = await homebridge.getPluginConfig().catch(() => []); config = { ...defaults, ...(blocks[0] || {}) }; config.devices = Array.isArray(config.devices) ? config.devices : [];
+    config.devices.forEach((device) => { if (!device.powerProbeMode) device.powerProbeMode = device.enableMutePowerProbe === false ? 'optimistic' : 'operation'; });
     await loadTranslations(); render();
     byId('ui-language').addEventListener('change', async (event) => { config.uiLanguage = event.target.value; await loadTranslations(); render(); scheduleUpdate(); });
   };

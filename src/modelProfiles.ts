@@ -20,6 +20,7 @@ export const MODEL_PROFILES: Record<string, Partial<RegzaDeviceConfig>> = {
     requestTimeoutMs: 5000,
     pollingInterval: 30,
     enableMutePowerProbe: true,
+    powerProbeMode: 'operation',
     powerProbeInterval: 60,
     selectKeyMode: 'guideFirst',
     navigationTimeoutSeconds: 60,
