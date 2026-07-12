@@ -40,6 +40,9 @@ export interface RegzaDeviceConfig {
   enableMutePowerProbe?: boolean;
   powerProbeMode?: PowerProbeMode;
   powerProbeInterval?: number;
+  operationPowerOnThresholdSeconds?: number;
+  stalePowerProbeHours?: number;
+  operationCommandDelayMs?: number;
   selectKeyMode?: SelectKeyMode;
   navigationTimeoutSeconds?: number;
   navigationPostSelectResetSeconds?: number;

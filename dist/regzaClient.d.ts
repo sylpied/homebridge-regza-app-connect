@@ -49,7 +49,7 @@ export declare class RegzaClient {
     channelDown(): Promise<void>;
     getPlaybackStatus(): Promise<RegzaPlaybackStatus>;
     getMuteStatus(): Promise<RegzaMuteStatus>;
-    probePowerWithMute(): Promise<boolean>;
+    probePowerWithMute(delayMs?: number): Promise<boolean>;
     private getJson;
     private requestWithDigest;
     private request;

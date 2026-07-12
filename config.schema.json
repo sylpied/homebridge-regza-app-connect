@@ -4,7 +4,7 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./homebridge-ui",
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.6.1 adds operation-linked power detection without periodic mute interruptions. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.7.0 adds operation wake preflight and a configurable long-idle state recheck. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -216,11 +216,11 @@
               "type": "string",
               "default": "operation",
               "oneOf": [
-                { "title": "Operation-linked / Startup only (Recommended)", "enum": ["operation"] },
+                { "title": "Operation-linked / Idle recheck (Recommended)", "enum": ["operation"] },
                 { "title": "Periodic mute probe", "enum": ["interval"] },
                 { "title": "Optimistic / Never probe", "enum": ["optimistic"] }
               ],
-              "description": "Operation-linked mode probes once at startup, then uses HomeKit power, broadcast input, and mute operations to keep state without periodic audio interruption."
+              "description": "Operation-linked mode avoids frequent mute probes. It sends discrete Power ON before supported operations after a short idle period and runs one mute probe after a configurable long idle period."
             },
             "powerProbeInterval": {
               "title": "Power Probe Interval Seconds",
@@ -229,6 +229,30 @@
               "minimum": 30,
               "maximum": 86400,
               "description": "Used only in Periodic mode. Interval for checking an ambiguous HDMI/standby state."
+            },
+            "operationPowerOnThresholdSeconds": {
+              "title": "Operation Wake Threshold Seconds",
+              "type": "integer",
+              "default": 30,
+              "minimum": 0,
+              "maximum": 3600,
+              "description": "Before a broadcast, volume, or mute operation, send the discrete Power ON key when no user operation has occurred for this duration. Set 0 to always send it."
+            },
+            "stalePowerProbeHours": {
+              "title": "Stale State Probe Hours",
+              "type": "number",
+              "default": 8,
+              "minimum": 0.25,
+              "maximum": 168,
+              "description": "After this many hours without a user operation, run one reversible mute probe and update HomeKit. This detects power OFF performed with another remote."
+            },
+            "operationCommandDelayMs": {
+              "title": "Operation Command Delay Milliseconds",
+              "type": "integer",
+              "default": 250,
+              "minimum": 100,
+              "maximum": 5000,
+              "description": "Delay between a preparatory Power ON or mute-probe command and the requested operation."
             },
             "selectKeyMode": {
               "title": "First Select Button Action",

@@ -4,6 +4,8 @@ English | [日本語](PROTOCOL.ja.md)
 
 Some REGZA models expose a self-describing v2 API. Querying the support endpoint is the recommended first step when investigating a new model.
 
+See also the [REGZA remote-key reference](REMOTE_KEYS.md). It contains unverified entries, so test each key carefully on the target model.
+
 ## Supported-command discovery
 
 Verified on REGZA 55J10X:

@@ -13,9 +13,11 @@ export declare class RegzaTvAccessory {
     private currentInput;
     private powerProbeRunning;
     private powerStateConfirmedAt;
+    private lastUserOperationAt;
     private navigationModeActive;
     private navigationSelectionMade;
     private navigationTimer?;
+    private stalePowerProbeTimer?;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
     private configureSpeaker;
@@ -37,5 +39,9 @@ export declare class RegzaTvAccessory {
     private setMute;
     private wake;
     private updatePowerState;
+    private prepareOperationWake;
+    private recordUserOperation;
+    private scheduleStalePowerProbe;
+    private runStalePowerProbe;
     private sleep;
 }
