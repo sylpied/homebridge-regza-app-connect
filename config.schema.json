@@ -1,8 +1,10 @@
 {
   "pluginAlias": "RegzaAppConnect",
   "pluginType": "platform",
-  "singular": false,
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.5.1 improves power-state responsiveness. REGZA 55J10X is verified with HTTPS port 4430.",
+  "singular": true,
+  "customUi": true,
+  "customUiPath": "./homebridge-ui",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.6.0 adds a guided Japanese/English settings UI. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -11,6 +13,16 @@
         "title": "Platform Name",
         "type": "string",
         "default": "RegzaAppConnect"
+      },
+      "uiLanguage": {
+        "title": "Settings language",
+        "type": "string",
+        "default": "auto",
+        "oneOf": [
+          { "title": "Automatic", "enum": ["auto"] },
+          { "title": "日本語", "enum": ["ja"] },
+          { "title": "English", "enum": ["en"] }
+        ]
       },
       "devices": {
         "title": "REGZA TVs",

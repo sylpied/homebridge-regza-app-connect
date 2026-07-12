@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.5.1
+# homebridge-regza-app-connect v0.6.0
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -83,7 +83,7 @@ The terrestrial `40BF7A`, BS `40BF7C`, CS `40BF7D`, and HDMI-next-active `40BF3A
 
 ## Recommended config for 55J10X
 
-With v0.5.1, choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
+With v0.6.0, the Homebridge custom settings UI groups essential settings first and keeps connection, power, remote, and input options in collapsible sections. Choose the `55J10X` model profile and enter only the IP address and App Connect credentials.
 
 ```json
 {
@@ -199,7 +199,7 @@ Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation m
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.5.1.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.6.0.tgz
 ```
 
 Then restart Homebridge.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+### Added
+
+- Added a custom Homebridge settings UI modeled after Alexa Smart Home Plus 0.9.0.
+- Added Japanese and English UI languages with automatic language selection.
+- Grouped each TV into Basic, Connection, Power, Remote, Input, and Advanced sections.
+- Added conditional fields so power keys, Wake on LAN, and mute-probe options appear only when relevant.
+
 ## 0.5.1
 
 ### Changed
