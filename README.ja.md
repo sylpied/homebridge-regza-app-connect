@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.5.1
+# homebridge-regza-app-connect v0.6.0
 
 REGZA App Connect / TV Web Interface を使って、HomeKit から REGZA を操作する Homebridge Dynamic Platform Plugin です。
 
@@ -83,7 +83,7 @@ REGZAの世代によって認証情報の準備方法が異なります。
 
 ## 55J10X 推奨設定
 
-v0.5.1 では `55J10X` モデルプロファイルを選び、IPアドレスと App Connect のユーザー名/パスワードだけ入力すれば使えます。
+v0.6.0では、Homebridgeの専用設定画面で必須項目を先に表示し、接続・電源・リモコン・入力設定を折りたたんで整理しています。`55J10X`モデルプロファイルを選び、IPアドレスとApp Connectのユーザー名/パスワードだけ入力すれば使えます。
 
 ```json
 {
@@ -199,7 +199,7 @@ HomeKitのTVリモコンにはREGZA専用のメニューボタンがありませ
 ## ローカルインストール
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.5.1.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.6.0.tgz
 ```
 
 その後、Homebridge を再起動してください。
