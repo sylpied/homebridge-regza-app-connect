@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0
+
+### Added
+
+- Added an operation wake preflight for terrestrial, BS, CS, volume, Mute, and contextual channel operations.
+- After 30 seconds without a user operation, the discrete Power ON key is sent before the requested operation; the threshold is configurable.
+- Added a one-shot stale-state probe after eight hours without a user operation, configurable in hours, so power OFF performed with another remote is eventually reflected in HomeKit.
+- Persisted the last user-operation time across Homebridge restarts.
+- Added configurable command spacing for preparatory Power ON and mute-probe commands.
+- Added Japanese and English remote-key reference documents with verified and explicitly unverified codes.
+
+### Changed
+
+- Operation-linked mode no longer probes at startup or on a short periodic timer.
+- Long-idle probing is postponed while the HomeKit remote is navigating a TV menu.
+
 ## 0.6.1
 
 ### Changed

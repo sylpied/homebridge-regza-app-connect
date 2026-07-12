@@ -183,14 +183,14 @@ export class RegzaClient {
     return this.getJson<RegzaMuteStatus>('/v2/remote/status/mute');
   }
 
-  async probePowerWithMute(): Promise<boolean> {
+  async probePowerWithMute(delayMs = 750): Promise<boolean> {
     const before = await this.getMuteStatus();
     if (before.status !== 0) {
       throw new Error(`REGZA mute status failed before power probe: status=${before.status}`);
     }
 
     await this.mute();
-    await this.sleep(750);
+    await this.sleep(delayMs);
     const after = await this.getMuteStatus();
     if (after.status !== 0) {
       throw new Error(`REGZA mute status failed during power probe: status=${after.status}`);
@@ -203,7 +203,7 @@ export class RegzaClient {
 
     // The TV is active. Restore the mute state changed by the probe.
     await this.mute();
-    await this.sleep(750);
+    await this.sleep(delayMs);
     const restored = await this.getMuteStatus();
     if (restored.status !== 0 || restored.mute !== before.mute) {
       throw new Error(

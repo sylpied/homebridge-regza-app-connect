@@ -13,9 +13,11 @@ export class RegzaTvAccessory {
   private currentInput = 1;
   private powerProbeRunning = false;
   private powerStateConfirmedAt = 0;
+  private lastUserOperationAt = 0;
   private navigationModeActive = false;
   private navigationSelectionMade = false;
   private navigationTimer?: NodeJS.Timeout;
+  private stalePowerProbeTimer?: NodeJS.Timeout;
 
   constructor(
     private readonly platform: RegzaPlatform,
@@ -56,12 +58,16 @@ export class RegzaTvAccessory {
     this.active = accessory.context.active === true;
     this.muted = accessory.context.muted === true;
     this.currentInput = typeof accessory.context.currentInput === 'number' ? accessory.context.currentInput : 1;
+    this.lastUserOperationAt = typeof accessory.context.lastUserOperationAt === 'number'
+      ? accessory.context.lastUserOperationAt
+      : Date.now();
 
     this.configureTelevision();
     this.configureSpeaker();
     this.configureInputs();
     this.startStatusPolling();
     this.startPowerProbing();
+    this.scheduleStalePowerProbe();
   }
 
   private configureTelevision(): void {
@@ -92,11 +98,13 @@ export class RegzaTvAccessory {
 
     this.speakerService.getCharacteristic(this.platform.Characteristic.VolumeSelector)
       .onSet(async value => {
+        await this.prepareOperationWake();
         if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
           await this.client.volumeUp();
         } else {
           await this.client.volumeDown();
         }
+        this.recordUserOperation();
       });
 
     this.tvService.addLinkedService(this.speakerService);
@@ -142,6 +150,7 @@ export class RegzaTvAccessory {
       this.endNavigationMode();
     }
     this.updatePowerState(shouldBeActive, true);
+    this.recordUserOperation();
 
   }
 
@@ -150,8 +159,12 @@ export class RegzaTvAccessory {
     this.accessory.context.currentInput = identifier;
     const input = this.getInputs().find(item => (item.identifier ?? this.getInputs().indexOf(item) + 1) === identifier);
     if (input) {
+      if (identifier >= 1 && identifier <= 3) {
+        await this.prepareOperationWake();
+      }
       this.platform.log.info(`Switching ${this.device.name} to input ${input.name} using key=${input.key}.`);
       await this.client.sendKey(input.key);
+      this.recordUserOperation();
       if (identifier >= 1 && identifier <= 3) {
         await this.sleep(750);
         await this.pollStatus();
@@ -160,12 +173,14 @@ export class RegzaTvAccessory {
   }
 
   private async handleRemoteKey(value: number): Promise<void> {
+    const previousOperationAt = this.lastUserOperationAt;
     switch (value) {
       case this.platform.Characteristic.RemoteKey.ARROW_UP:
         if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
           await this.client.sendKey('up');
           this.refreshNavigationTimeout();
         } else {
+          await this.prepareOperationWake(previousOperationAt);
           await this.client.channelUp();
         }
         break;
@@ -174,6 +189,7 @@ export class RegzaTvAccessory {
           await this.client.sendKey('down');
           this.refreshNavigationTimeout();
         } else {
+          await this.prepareOperationWake(previousOperationAt);
           await this.client.channelDown();
         }
         break;
@@ -217,6 +233,7 @@ export class RegzaTvAccessory {
         this.platform.log.debug(`Unsupported HomeKit remote key: ${value}`);
         break;
     }
+    this.recordUserOperation();
   }
 
   private async handleSelectKey(): Promise<void> {
@@ -245,6 +262,7 @@ export class RegzaTvAccessory {
   }
 
   private async cycleBroadcastBand(direction: -1 | 1): Promise<void> {
+    await this.prepareOperationWake();
     const broadcastIdentifiers = [1, 2, 3];
     const currentIndex = broadcastIdentifiers.indexOf(this.currentInput);
     const targetIdentifier = currentIndex === -1
@@ -333,8 +351,8 @@ export class RegzaTvAccessory {
       return;
     }
 
-    setTimeout(() => void this.probePowerStatus(true), 2000).unref();
     if (mode === 'interval') {
+      setTimeout(() => void this.probePowerStatus(true), 2000).unref();
       const intervalSeconds = this.device.powerProbeInterval ?? 60;
       const timer = setInterval(() => void this.probePowerStatus(false), intervalSeconds * 1000);
       timer.unref();
@@ -361,7 +379,7 @@ export class RegzaTvAccessory {
       const playback = await this.client.getPlaybackStatus();
       const detectedActive = playback.status === 0 && playback.content_type === 'broadcast'
         ? true
-        : await this.client.probePowerWithMute();
+        : await this.client.probePowerWithMute(this.device.operationCommandDelayMs ?? 250);
 
       const changed = detectedActive !== this.active;
       this.updatePowerState(detectedActive, true);
@@ -427,9 +445,11 @@ export class RegzaTvAccessory {
   }
 
   private async setMute(targetMuted: boolean): Promise<void> {
+    await this.prepareOperationWake();
     const before = await this.client.getMuteStatus();
     if (before.status !== 0) {
       await this.client.mute();
+      this.recordUserOperation();
       return;
     }
 
@@ -438,10 +458,12 @@ export class RegzaTvAccessory {
       this.muted = targetMuted;
       this.accessory.context.muted = targetMuted;
       this.speakerService.updateCharacteristic(this.platform.Characteristic.Mute, targetMuted);
+      this.recordUserOperation();
       return;
     }
 
     await this.client.mute();
+    this.recordUserOperation();
     await this.sleep(500);
     const after = await this.client.getMuteStatus();
     if (after.status === 0 && (after.mute === 'on') === targetMuted) {
@@ -476,6 +498,53 @@ export class RegzaTvAccessory {
         ? this.platform.Characteristic.Active.ACTIVE
         : this.platform.Characteristic.Active.INACTIVE,
     );
+  }
+
+  private async prepareOperationWake(previousOperationAt = this.lastUserOperationAt): Promise<void> {
+    const now = Date.now();
+    const wakeThresholdMs = (this.device.operationPowerOnThresholdSeconds ?? 30) * 1000;
+
+    if (now - previousOperationAt < wakeThresholdMs) {
+      return;
+    }
+
+    await this.client.powerOn();
+    this.updatePowerState(true, true);
+    await this.sleep(this.device.operationCommandDelayMs ?? 250);
+  }
+
+  private recordUserOperation(): void {
+    this.lastUserOperationAt = Date.now();
+    this.accessory.context.lastUserOperationAt = this.lastUserOperationAt;
+    this.scheduleStalePowerProbe();
+  }
+
+  private scheduleStalePowerProbe(): void {
+    if (this.stalePowerProbeTimer) {
+      clearTimeout(this.stalePowerProbeTimer);
+      this.stalePowerProbeTimer = undefined;
+    }
+
+    const mode = this.device.powerProbeMode
+      ?? (this.device.enableMutePowerProbe === false ? 'optimistic' : 'operation');
+    if (mode !== 'operation') {
+      return;
+    }
+
+    const intervalMs = (this.device.stalePowerProbeHours ?? 8) * 60 * 60 * 1000;
+    const delayMs = Math.max(1000, intervalMs - (Date.now() - this.lastUserOperationAt));
+    this.stalePowerProbeTimer = setTimeout(() => void this.runStalePowerProbe(), delayMs);
+    this.stalePowerProbeTimer.unref();
+  }
+
+  private async runStalePowerProbe(): Promise<void> {
+    if (this.navigationModeActive || this.powerProbeRunning) {
+      this.stalePowerProbeTimer = setTimeout(() => void this.runStalePowerProbe(), 60_000);
+      this.stalePowerProbeTimer.unref();
+      return;
+    }
+
+    await this.probePowerStatus(true);
   }
 
   private sleep(ms: number): Promise<void> {
