@@ -14,6 +14,7 @@ export declare class RegzaTvAccessory {
     private powerProbeRunning;
     private powerStateConfirmedAt;
     private lastUserOperationAt;
+    private statusPollFailureCount;
     private navigationModeActive;
     private navigationSelectionMade;
     private navigationTimer?;
