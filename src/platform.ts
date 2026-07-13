@@ -4,6 +4,10 @@ import { RegzaTvAccessory } from './platformAccessory';
 import { applyModelProfile, MODEL_55J10X } from './modelProfiles';
 import { RemoteKeys } from './remoteKeys';
 
+export function getDeviceIdentity(device: Pick<RegzaDeviceConfig, 'ip' | 'mac'>): string {
+  return (device.mac || device.ip).trim().toLowerCase();
+}
+
 export class RegzaPlatform implements DynamicPlatformPlugin {
   public readonly Service;
   public readonly Characteristic;
@@ -42,17 +46,27 @@ export class RegzaPlatform implements DynamicPlatformPlugin {
 
       this.logDeviceConfig(normalizedDevice);
 
-      const uuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:${normalizedDevice.mac ?? normalizedDevice.ip}:${normalizedDevice.name}`);
-      configuredUuids.add(uuid);
-
-      const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
+      const identity = getDeviceIdentity(normalizedDevice);
+      const uuid = this.api.hap.uuid.generate(`${PLUGIN_NAME}:${identity}`);
+      const legacyUuid = this.api.hap.uuid.generate(
+        `${PLUGIN_NAME}:${normalizedDevice.mac ?? normalizedDevice.ip}:${normalizedDevice.name}`,
+      );
+      const existingAccessory = this.cachedAccessories.find(accessory => {
+        const cachedDevice = accessory.context.device as Partial<RegzaDeviceConfig> | undefined;
+        const cachedIdentity = cachedDevice?.ip
+          ? getDeviceIdentity({ ip: cachedDevice.ip, mac: cachedDevice.mac })
+          : undefined;
+        return accessory.UUID === uuid || accessory.UUID === legacyUuid || cachedIdentity === identity;
+      });
       if (existingAccessory) {
+        configuredUuids.add(existingAccessory.UUID);
         this.log.info(`Restoring REGZA TV from cache: ${normalizedDevice.name}`);
         existingAccessory.context.device = normalizedDevice;
         new RegzaTvAccessory(this, existingAccessory, normalizedDevice);
         continue;
       }
 
+      configuredUuids.add(uuid);
       this.log.info(`Adding new REGZA TV: ${normalizedDevice.name}`);
       const accessory = new this.api.platformAccessory(normalizedDevice.name, uuid);
       accessory.context.device = normalizedDevice;

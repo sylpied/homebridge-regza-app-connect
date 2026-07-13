@@ -1,6 +1,7 @@
 import type { PlatformAccessory } from 'homebridge';
 import { RegzaDeviceConfig } from './settings';
 import type { RegzaPlatform } from './platform';
+export declare function shouldPrepareOperationWake(powerMode: RegzaDeviceConfig['powerMode'], idleMs: number, thresholdMs: number): boolean;
 export declare class RegzaTvAccessory {
     private readonly platform;
     private readonly accessory;
@@ -19,6 +20,7 @@ export declare class RegzaTvAccessory {
     private navigationSelectionMade;
     private navigationTimer?;
     private stalePowerProbeTimer?;
+    private muteOperationQueue;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
     private configureSpeaker;
@@ -38,11 +40,13 @@ export declare class RegzaTvAccessory {
     private probePowerStatus;
     private pollStatus;
     private setMute;
+    private setMuteUnlocked;
     private wake;
     private updatePowerState;
     private prepareOperationWake;
     private recordUserOperation;
     private scheduleStalePowerProbe;
     private runStalePowerProbe;
+    private withMuteOperationLock;
     private sleep;
 }

@@ -63,7 +63,7 @@
       <div id="${p}-toggle" class="regza-wide">${input(`${p}-power-toggle`, t('powerToggleKey'), device.powerToggleKey)}</div>
       ${select(`${p}-probe-mode`, t('probeMode'), device.powerProbeMode || 'operation', [['operation', t('probeOperation')], ['interval', t('probeIntervalMode')], ['optimistic', t('probeOptimistic')]], t('muteProbeHelp'))}
       <div id="${p}-probe-options" class="regza-wide">${input(`${p}-probe-interval`, t('probeInterval'), device.powerProbeInterval, 'number', 'min="30" max="86400"')}</div>
-      ${input(`${p}-operation-wake`, t('operationWakeThreshold'), device.operationPowerOnThresholdSeconds ?? 30, 'number', 'min="0" max="3600"', t('operationWakeHelp'))}
+      <div id="${p}-operation-wake-option" class="regza-wide">${input(`${p}-operation-wake`, t('operationWakeThreshold'), device.operationPowerOnThresholdSeconds ?? 30, 'number', 'min="0" max="3600"', t('operationWakeHelp'))}</div>
       ${input(`${p}-stale-probe`, t('staleProbeHours'), device.stalePowerProbeHours ?? 8, 'number', 'min="0.25" max="168" step="0.25"', t('staleProbeHelp'))}
       ${input(`${p}-command-delay`, t('operationCommandDelay'), device.operationCommandDelayMs ?? 250, 'number', 'min="100" max="5000"', t('operationCommandDelayHelp'))}
       ${check(`${p}-wol`, t('wol'), device.enableWakeOnLan === true, t('wolHelp'))}
@@ -106,7 +106,12 @@
     ['power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
     byId(`${p}-model`)?.addEventListener('change', () => { if (device.model === '55J10X') applyJ10x(device); render(); scheduleUpdate(); });
     document.querySelector(`[data-index="${index}"] .regza-remove-device`).onclick = () => { config.devices.splice(index, 1); render(); scheduleUpdate(); };
-    byId(`${p}-add-input`).onclick = () => { device.inputs.push({ name: 'HDMI', key: '40BF3A', identifier: device.inputs.length + 1 }); render(); scheduleUpdate(); };
+    byId(`${p}-add-input`).onclick = () => {
+      const identifier = Math.max(0, ...device.inputs.map((item) => Number(item.identifier) || 0)) + 1;
+      device.inputs.push({ name: 'HDMI', key: '40BF3A', identifier });
+      renderInputs(device, index);
+      scheduleUpdate();
+    };
     renderInputs(device, index);
     updateConditional(device, index);
   };
@@ -115,6 +120,7 @@
     const p = `d${index}`;
     byId(`${p}-discrete`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
     byId(`${p}-toggle`)?.classList.toggle('d-none', device.powerMode !== 'toggle');
+    byId(`${p}-operation-wake-option`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
     byId(`${p}-probe-options`)?.classList.toggle('d-none', device.powerProbeMode !== 'interval');
     byId(`${p}-wol-options`)?.classList.toggle('d-none', device.enableWakeOnLan !== true);
     homebridge.fixScrollHeight?.();
@@ -127,7 +133,11 @@
       row.innerHTML = `${input(`d${index}-i${itemIndex}-name`, t('inputName'), item.name)}${input(`d${index}-i${itemIndex}-key`, t('inputKey'), item.key)}${input(`d${index}-i${itemIndex}-id`, t('inputId'), item.identifier, 'number', 'min="1"')}<button type="button" class="btn btn-outline-danger btn-sm regza-danger">${t('remove')}</button>`;
       container.append(row);
       bindValue(`d${index}-i${itemIndex}-name`, item, 'name'); bindValue(`d${index}-i${itemIndex}-key`, item, 'key'); bindValue(`d${index}-i${itemIndex}-id`, item, 'identifier', 'number');
-      row.querySelector('button').onclick = () => { device.inputs.splice(itemIndex, 1); render(); scheduleUpdate(); };
+      row.querySelector('button').onclick = () => {
+        device.inputs.splice(itemIndex, 1);
+        renderInputs(device, index);
+        scheduleUpdate();
+      };
     });
   };
   const render = () => {
@@ -149,7 +159,7 @@
   const loadTranslations = async () => {
     const hbLanguage = typeof homebridge.i18nCurrentLang === 'function' ? await homebridge.i18nCurrentLang() : navigator.language;
     const language = config.uiLanguage === 'auto' ? ((hbLanguage || '').toLowerCase().startsWith('ja') ? 'ja' : 'en') : config.uiLanguage;
-    try { const response = await fetch(`locales/${language}.json?v=0.7.1`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
+    try { const response = await fetch(`locales/${language}.json?v=0.7.2`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
   };
   const init = async () => {
     const blocks = await homebridge.getPluginConfig().catch(() => []); config = { ...defaults, ...(blocks[0] || {}) }; config.devices = Array.isArray(config.devices) ? config.devices : [];

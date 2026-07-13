@@ -125,23 +125,40 @@ class RegzaClient {
             throw new Error(`REGZA mute status failed before power probe: status=${before.status}`);
         }
         await this.mute();
-        await this.sleep(delayMs);
-        const after = await this.getMuteStatus();
-        if (after.status !== 0) {
-            throw new Error(`REGZA mute status failed during power probe: status=${after.status}`);
+        let restorationRequired = true;
+        try {
+            await this.sleep(delayMs);
+            const after = await this.getMuteStatus();
+            if (after.status !== 0) {
+                throw new Error(`REGZA mute status failed during power probe: status=${after.status}`);
+            }
+            const changed = before.mute !== after.mute;
+            // Always send the second toggle. Even if the status endpoint still reports
+            // the old value, the first command may have taken effect slightly later.
+            await this.mute();
+            restorationRequired = false;
+            if (!changed) {
+                return false;
+            }
+            await this.sleep(delayMs);
+            const restored = await this.getMuteStatus();
+            if (restored.status !== 0 || restored.mute !== before.mute) {
+                throw new Error(`REGZA mute state was not restored after power probe: before=${before.mute}, restored=${restored.mute}`);
+            }
+            return true;
         }
-        const changed = before.mute !== after.mute;
-        if (!changed) {
-            return false;
+        catch (error) {
+            if (restorationRequired) {
+                try {
+                    await this.mute();
+                }
+                catch (restoreError) {
+                    throw new Error(`REGZA power probe failed and mute restoration also failed: ` +
+                        `${this.describeError(error)}; restore=${this.describeError(restoreError)}`);
+                }
+            }
+            throw error;
         }
-        // The TV is active. Restore the mute state changed by the probe.
-        await this.mute();
-        await this.sleep(delayMs);
-        const restored = await this.getMuteStatus();
-        if (restored.status !== 0 || restored.mute !== before.mute) {
-            throw new Error(`REGZA mute state was not restored after power probe: before=${before.mute}, restored=${restored.mute}`);
-        }
-        return true;
     }
     async getJson(path) {
         const response = await this.requestWithDigest(path);
@@ -178,7 +195,7 @@ class RegzaClient {
         const headers = {
             'Accept': '*/*',
             'Connection': 'close',
-            'User-Agent': 'homebridge-regza-app-connect/0.3.0',
+            'User-Agent': 'homebridge-regza-app-connect/0.7.2',
         };
         if (authorization) {
             headers.Authorization = authorization;

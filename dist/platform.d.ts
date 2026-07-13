@@ -1,5 +1,6 @@
 import type { API, DynamicPlatformPlugin, Logging, PlatformAccessory } from 'homebridge';
-import { RegzaPlatformConfig } from './settings';
+import { RegzaDeviceConfig, RegzaPlatformConfig } from './settings';
+export declare function getDeviceIdentity(device: Pick<RegzaDeviceConfig, 'ip' | 'mac'>): string;
 export declare class RegzaPlatform implements DynamicPlatformPlugin {
     readonly log: Logging;
     readonly config: RegzaPlatformConfig;
