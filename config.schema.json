@@ -4,7 +4,7 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./homebridge-ui",
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.7.3 improves power and input state synchronization for broadcast and HDMI viewing. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.7.4 reduces REGZA network load with 120-second playback-only polling and progressive retry backoff. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -200,10 +200,10 @@
             "pollingInterval": {
               "title": "Polling Interval Seconds",
               "type": "integer",
-              "default": 30,
-              "minimum": 5,
+              "default": 120,
+              "minimum": 120,
               "maximum": 3600,
-              "description": "Polls the REGZA v2 API for power/input and mute status. Verified on 55J10X."
+              "description": "Low-load power/input polling interval. Only playback status is polled; failures use progressive backoff up to 10 minutes. The runtime minimum is 120 seconds."
             },
             "enableMutePowerProbe": {
               "title": "Enable Mute-based Power Probe",

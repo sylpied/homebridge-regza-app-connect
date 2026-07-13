@@ -17,7 +17,7 @@ exports.MODEL_PROFILES = {
         enableWakeOnLan: false,
         powerOnDelaySeconds: 2,
         requestTimeoutMs: 5000,
-        pollingInterval: 30,
+        pollingInterval: 120,
         enableMutePowerProbe: true,
         powerProbeMode: 'operation',
         powerProbeInterval: 60,

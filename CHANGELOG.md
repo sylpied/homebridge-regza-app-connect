@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.4
+
+### Changed
+
+- Reduced normal REGZA v2 polling to playback status only, removing periodic mute-status requests.
+- Changed the default and runtime minimum polling interval from 30 seconds to 120 seconds.
+- Added progressive retry backoff up to 10 minutes after communication failures.
+- Prevented overlapping status polls and kept the poll scheduler running after recoverable failures.
+- Migrated legacy custom-UI polling values below 120 seconds to the new low-load minimum.
+
+### Fixed
+
+- Kept HDMI `external` states ambiguous because 55J10X can retain them after standby; only broadcast playback positively confirms ON.
+- Updated Japanese and English settings and protocol documentation to match the low-load behavior.
+
+### Tests
+
+- Added regression coverage for polling intervals, failure backoff, and safe broadcast-only positive power detection.
+
 ## 0.7.3
 
 ### Fixed

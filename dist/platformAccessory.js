@@ -8,6 +8,7 @@ exports.shouldPrepareOperationWake = shouldPrepareOperationWake;
 exports.getBroadcastInputKey = getBroadcastInputKey;
 exports.findInputIdentifier = findInputIdentifier;
 exports.isPlaybackDefinitelyActive = isPlaybackDefinitelyActive;
+exports.getStatusPollDelayMs = getStatusPollDelayMs;
 const wake_on_lan_1 = __importDefault(require("wake_on_lan"));
 const settings_1 = require("./settings");
 const regzaClient_1 = require("./regzaClient");
@@ -42,7 +43,14 @@ function findInputIdentifier(inputs, expectedKey) {
     return inputs[index].identifier ?? index + 1;
 }
 function isPlaybackDefinitelyActive(status, contentType) {
-    return status === 0 && (contentType === 'broadcast' || contentType === 'external');
+    return status === 0 && contentType === 'broadcast';
+}
+function getStatusPollDelayMs(intervalSeconds, consecutiveFailures) {
+    if (consecutiveFailures <= 0) {
+        return intervalSeconds * 1000;
+    }
+    const backoffSeconds = [60, 120, 300, 600][Math.min(consecutiveFailures - 1, 3)];
+    return Math.max(intervalSeconds, backoffSeconds) * 1000;
 }
 class RegzaTvAccessory {
     platform;
@@ -58,6 +66,8 @@ class RegzaTvAccessory {
     powerStateConfirmedAt = 0;
     lastUserOperationAt = 0;
     statusPollFailureCount = 0;
+    statusPollRunning;
+    statusPollTimer;
     navigationModeActive = false;
     navigationSelectionMade = false;
     navigationTimer;
@@ -368,13 +378,27 @@ class RegzaTvAccessory {
         return this.device.inputs?.length ? this.device.inputs : settings_1.DEFAULT_INPUTS;
     }
     startStatusPolling() {
-        const intervalSeconds = this.device.pollingInterval ?? 30;
+        const intervalSeconds = Math.max(120, this.device.pollingInterval ?? 120);
         if (intervalSeconds <= 0) {
             return;
         }
-        const timer = setInterval(() => void this.pollStatus(), intervalSeconds * 1000);
-        timer.unref();
-        setTimeout(() => void this.pollStatus(), 1000).unref();
+        this.scheduleStatusPoll(1000, intervalSeconds);
+    }
+    scheduleStatusPoll(delayMs, intervalSeconds) {
+        if (this.statusPollTimer) {
+            clearTimeout(this.statusPollTimer);
+        }
+        this.statusPollTimer = setTimeout(() => void this.runScheduledStatusPoll(intervalSeconds), delayMs);
+        this.statusPollTimer.unref();
+    }
+    async runScheduledStatusPoll(intervalSeconds) {
+        this.statusPollTimer = undefined;
+        try {
+            await this.pollStatus();
+        }
+        finally {
+            this.scheduleStatusPoll(getStatusPollDelayMs(intervalSeconds, this.statusPollFailureCount), intervalSeconds);
+        }
     }
     startPowerProbing() {
         const mode = this.device.powerProbeMode
@@ -421,16 +445,24 @@ class RegzaTvAccessory {
             this.powerProbeRunning = false;
         }
     }
-    async pollStatus() {
-        const [playbackResult, muteResult] = await Promise.allSettled([
-            this.client.getPlaybackStatus(),
-            this.client.getMuteStatus(),
-        ]);
-        if (playbackResult.status === 'fulfilled') {
-            const playback = playbackResult.value;
+    pollStatus() {
+        if (this.statusPollRunning) {
+            return this.statusPollRunning;
+        }
+        const operation = this.pollStatusOnce();
+        this.statusPollRunning = operation;
+        void operation.finally(() => {
+            if (this.statusPollRunning === operation) {
+                this.statusPollRunning = undefined;
+            }
+        });
+        return operation;
+    }
+    async pollStatusOnce() {
+        try {
+            const playback = await this.client.getPlaybackStatus();
             if (playback.status === 0) {
                 if (playback.content_type === 'external') {
-                    this.updatePowerState(true, true);
                     const inputIdentifier = findInputIdentifier(this.getInputs(), remoteKeys_1.RemoteKeys.HDMI_NEXT_ACTIVE);
                     if (inputIdentifier !== undefined && this.currentInput !== inputIdentifier) {
                         this.currentInput = inputIdentifier;
@@ -449,20 +481,6 @@ class RegzaTvAccessory {
                     }
                 }
             }
-        }
-        if (muteResult.status === 'fulfilled') {
-            const mute = muteResult.value;
-            if (mute.status === 0) {
-                const detectedMuted = mute.mute === 'on';
-                if (detectedMuted !== this.muted) {
-                    this.muted = detectedMuted;
-                    this.accessory.context.muted = detectedMuted;
-                    this.speakerService.updateCharacteristic(this.platform.Characteristic.Mute, detectedMuted);
-                }
-            }
-        }
-        const failures = [playbackResult, muteResult].filter(result => result.status === 'rejected');
-        if (failures.length === 0) {
             if (this.statusPollFailureCount > 0) {
                 if (this.platform.config.debug === true) {
                     this.platform.log.debug(`REGZA v2 status polling recovered for ${this.device.name} after ` +
@@ -470,20 +488,16 @@ class RegzaTvAccessory {
                 }
                 this.statusPollFailureCount = 0;
             }
+            return true;
         }
-        else {
+        catch (error) {
             this.statusPollFailureCount += 1;
             if (this.platform.config.debug === true && this.statusPollFailureCount === 1) {
-                const reasons = failures
-                    .map(result => result.status === 'rejected'
-                    ? result.reason instanceof Error ? result.reason.message : String(result.reason)
-                    : '')
-                    .filter(Boolean)
-                    .join('; ');
                 this.platform.log.debug(`Unable to poll REGZA v2 status for ${this.device.name}: ` +
-                    `${reasons}. ` +
-                    'Further consecutive failures will be suppressed until polling recovers.');
+                    `${error instanceof Error ? error.message : String(error)}. ` +
+                    'Further consecutive failures will be suppressed and retried with backoff until polling recovers.');
             }
+            return false;
         }
     }
     async setMute(targetMuted) {
