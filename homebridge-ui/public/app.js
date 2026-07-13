@@ -10,7 +10,7 @@
     protocol: 'https', port: 4430, allowSelfSignedCertificate: true,
     powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12',
     enableWakeOnLan: false, wakeOnLanAddress: '192.168.100.255', wakeOnLanPort: 2304,
-    powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 30,
+    powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 120,
     enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60,
     operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst',
     navigationTimeoutSeconds: 60, navigationPostSelectResetSeconds: 15,
@@ -51,7 +51,7 @@
       ${input(`${p}-port`, t('port'), device.port, 'number', 'min="1" max="65535"')}
       ${check(`${p}-selfsigned`, t('selfSigned'), device.allowSelfSignedCertificate !== false, t('selfSignedHelp'))}
       ${input(`${p}-timeout`, t('requestTimeout'), device.requestTimeoutMs, 'number', 'min="1000" max="60000"')}
-      ${input(`${p}-polling`, t('polling'), device.pollingInterval, 'number', 'min="5" max="3600"')}
+      ${input(`${p}-polling`, t('polling'), device.pollingInterval, 'number', 'min="120" max="3600"')}
     </div>`;
     const power = `<div class="regza-grid">
       ${select(`${p}-power-mode`, t('powerMode'), device.powerMode || 'discrete', [['discrete', t('discrete')], ['toggle', t('toggle')]])}
@@ -115,7 +115,7 @@
     renderInputs(device, index);
     updateConditional(device, index);
   };
-  const applyJ10x = (d) => Object.assign(d, { protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250 });
+  const applyJ10x = (d) => Object.assign(d, { protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250 });
   const updateConditional = (device, index) => {
     const p = `d${index}`;
     byId(`${p}-discrete`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
@@ -159,11 +159,14 @@
   const loadTranslations = async () => {
     const hbLanguage = typeof homebridge.i18nCurrentLang === 'function' ? await homebridge.i18nCurrentLang() : navigator.language;
     const language = config.uiLanguage === 'auto' ? ((hbLanguage || '').toLowerCase().startsWith('ja') ? 'ja' : 'en') : config.uiLanguage;
-    try { const response = await fetch(`locales/${language}.json?v=0.7.2`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
+    try { const response = await fetch(`locales/${language}.json?v=0.7.4`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
   };
   const init = async () => {
     const blocks = await homebridge.getPluginConfig().catch(() => []); config = { ...defaults, ...(blocks[0] || {}) }; config.devices = Array.isArray(config.devices) ? config.devices : [];
-    config.devices.forEach((device) => { if (!device.powerProbeMode) device.powerProbeMode = device.enableMutePowerProbe === false ? 'optimistic' : 'operation'; });
+    config.devices.forEach((device) => {
+      if (!device.powerProbeMode) device.powerProbeMode = device.enableMutePowerProbe === false ? 'optimistic' : 'operation';
+      if (!device.pollingInterval || device.pollingInterval < 120) device.pollingInterval = 120;
+    });
     await loadTranslations(); render();
     byId('ui-language').addEventListener('change', async (event) => { config.uiLanguage = event.target.value; await loadTranslations(); render(); scheduleUpdate(); });
   };

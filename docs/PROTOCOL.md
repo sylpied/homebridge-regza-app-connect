@@ -68,7 +68,7 @@ Verified `play/status` values on 55J10X:
 | Terrestrial / BS / CS | `broadcast` |
 | HDMI | `external` |
 
-Important: 55J10X retains `external` after entering standby from HDMI. The plugin distinguishes this ambiguous state with a reversible mute probe: read mute, send `40BF10`, read mute again, and restore the original value when it changed.
+Important: 55J10X can retain `external` after entering standby from HDMI, so `external` cannot confirm ON by itself. The plugin can use a reversible mute probe when required: read mute, send `40BF10`, read mute again, and restore the original value when it changed.
 
 ## Models without editable credentials
 

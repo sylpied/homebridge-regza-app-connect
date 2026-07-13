@@ -11,7 +11,7 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 - Separate Power ON/OFF keys
 - Toggle power key fallback for legacy models
 - Model profile support
-- REGZA v2 power, input and mute status polling
+- Low-load REGZA v2 power and input status polling
 - Stateful HomeKit remote navigation mode
 - Verified on REGZA 55J10X
 
@@ -144,7 +144,7 @@ Existing v0.1.x configurations that only define `powerKey` keep their original t
 
 ## Power state
 
-The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`. Broadcast playback reports a reliable ON state. HDMI playback remains cached as `external` after the 55J10X enters standby, so ambiguous states use a verified mute-state probe:
+The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`. Playback status with `status=0` and `broadcast` reliably reports ON. Because 55J10X can retain `external` after entering standby from HDMI, `external` never confirms ON by itself; the ambiguous state can use a verified mute-state probe when required:
 
 1. Read the current mute state.
 2. Send mute (`40BF10`).
@@ -158,9 +158,11 @@ Verified 55J10X playback states:
 |---|---|---|
 | Standby after broadcast | `other` | Confirmed by mute probe |
 | Terrestrial / BS / CS | `broadcast` | ON |
-| HDMI or standby after HDMI | `external` | Distinguished by mute probe |
+| HDMI or standby after HDMI | `external` | Distinguished by mute probe when required |
 
-Mute is synchronized through `GET /v2/remote/status/mute`. Normal input/mute polling defaults to 30 seconds and remains active in every probe mode. Whenever periodic playback status reports `broadcast` for terrestrial, BS, or CS, the TV is positively identified as ON.
+Normal periodic polling uses only `GET /v2/remote/play/status` every 120 seconds by default to reduce network load. Overlapping polls are suppressed, and failures progressively back off up to 10 minutes. Legacy values below 120 seconds are raised to 120 seconds at runtime. Mute status is no longer included in normal polling; it is queried only for HomeKit Mute operations or when a power probe is required.
+
+Playback status reporting `broadcast` for terrestrial, BS, or CS positively identifies the TV as ON and updates HomeKit. HDMI `external` and an unreachable TV API retain the last confirmed state to avoid a false power-state change.
 
 In the default `operation` mode, terrestrial, BS, CS, volume, and Mute operations are prefixed with the discrete Power ON key when 30 seconds have passed since the previous user operation. The discrete key cannot turn an already-active TV off, so an operation can wake a TV that was switched off with another remote while HDMI was selected. Configure the threshold with `operationPowerOnThresholdSeconds`.
 

@@ -4,6 +4,7 @@ const { getDeviceIdentity } = require('../dist/platform');
 const {
   findInputIdentifier,
   getBroadcastInputKey,
+  getStatusPollDelayMs,
   isPlaybackDefinitelyActive,
   shouldPrepareOperationWake,
 } = require('../dist/platformAccessory');
@@ -44,10 +45,19 @@ test('status polling respects configured input identifiers', () => {
   assert.equal(findInputIdentifier(inputs, 'unknown'), undefined);
 });
 
-test('known broadcast and HDMI playback states are definitely active', () => {
+test('only broadcast playback is definitely active on 55J10X', () => {
   assert.equal(isPlaybackDefinitelyActive(0, 'broadcast'), true);
-  assert.equal(isPlaybackDefinitelyActive(0, 'external'), true);
+  assert.equal(isPlaybackDefinitelyActive(0, 'external'), false);
   assert.equal(isPlaybackDefinitelyActive(1, 'broadcast'), false);
   assert.equal(isPlaybackDefinitelyActive(1, 'external'), false);
   assert.equal(isPlaybackDefinitelyActive(0, 'unknown'), false);
+});
+
+test('status polling uses a low-load interval and progressive failure backoff', () => {
+  assert.equal(getStatusPollDelayMs(120, 0), 120_000);
+  assert.equal(getStatusPollDelayMs(120, 1), 120_000);
+  assert.equal(getStatusPollDelayMs(120, 2), 120_000);
+  assert.equal(getStatusPollDelayMs(120, 3), 300_000);
+  assert.equal(getStatusPollDelayMs(120, 4), 600_000);
+  assert.equal(getStatusPollDelayMs(300, 1), 300_000);
 });

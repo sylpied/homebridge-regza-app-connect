@@ -5,6 +5,7 @@ export declare function shouldPrepareOperationWake(powerMode: RegzaDeviceConfig[
 export declare function getBroadcastInputKey(channel: string): string;
 export declare function findInputIdentifier(inputs: RegzaInputConfig[], expectedKey: string): number | undefined;
 export declare function isPlaybackDefinitelyActive(status: number, contentType: string): boolean;
+export declare function getStatusPollDelayMs(intervalSeconds: number, consecutiveFailures: number): number;
 export declare class RegzaTvAccessory {
     private readonly platform;
     private readonly accessory;
@@ -19,6 +20,8 @@ export declare class RegzaTvAccessory {
     private powerStateConfirmedAt;
     private lastUserOperationAt;
     private statusPollFailureCount;
+    private statusPollRunning?;
+    private statusPollTimer?;
     private navigationModeActive;
     private navigationSelectionMade;
     private navigationTimer?;
@@ -39,9 +42,12 @@ export declare class RegzaTvAccessory {
     private endNavigationMode;
     private getInputs;
     private startStatusPolling;
+    private scheduleStatusPoll;
+    private runScheduledStatusPoll;
     private startPowerProbing;
     private probePowerStatus;
     private pollStatus;
+    private pollStatusOnce;
     private setMute;
     private setMuteUnlocked;
     private wake;

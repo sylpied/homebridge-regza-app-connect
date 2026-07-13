@@ -272,7 +272,7 @@ export class RegzaClient {
     const headers: Record<string, string> = {
       'Accept': '*/*',
       'Connection': 'close',
-      'User-Agent': 'homebridge-regza-app-connect/0.7.3',
+      'User-Agent': 'homebridge-regza-app-connect/0.7.4',
     };
 
     if (authorization) {
