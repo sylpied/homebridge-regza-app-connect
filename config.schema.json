@@ -4,7 +4,7 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./homebridge-ui",
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.7.1 suppresses repeated status-poll errors while retaining first-failure and recovery diagnostics. REGZA 55J10X is verified with HTTPS port 4430.",
+  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.7.2 improves operation-wake safety, mute restoration, and HomeKit accessory identity stability. REGZA 55J10X is verified with HTTPS port 4430.",
   "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
   "schema": {
     "type": "object",
@@ -236,7 +236,7 @@
               "default": 30,
               "minimum": 0,
               "maximum": 3600,
-              "description": "Before a broadcast, volume, or mute operation, send the discrete Power ON key when no user operation has occurred for this duration. Set 0 to always send it."
+              "description": "Discrete power mode only. Before a broadcast, volume, or mute operation, send the Power ON key when no user operation has occurred for this duration. Set 0 to always send it."
             },
             "stalePowerProbeHours": {
               "title": "Stale State Probe Hours",

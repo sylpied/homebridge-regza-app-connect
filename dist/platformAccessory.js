@@ -4,9 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegzaTvAccessory = void 0;
+exports.shouldPrepareOperationWake = shouldPrepareOperationWake;
 const wake_on_lan_1 = __importDefault(require("wake_on_lan"));
 const settings_1 = require("./settings");
 const regzaClient_1 = require("./regzaClient");
+function shouldPrepareOperationWake(powerMode, idleMs, thresholdMs) {
+    return powerMode === 'discrete' && idleMs >= thresholdMs;
+}
 class RegzaTvAccessory {
     platform;
     accessory;
@@ -25,6 +29,7 @@ class RegzaTvAccessory {
     navigationSelectionMade = false;
     navigationTimer;
     stalePowerProbeTimer;
+    muteOperationQueue = Promise.resolve();
     constructor(platform, accessory, device) {
         this.platform = platform;
         this.accessory = accessory;
@@ -103,6 +108,16 @@ class RegzaTvAccessory {
     }
     configureInputs() {
         const inputs = this.getInputs();
+        const configuredSubtypes = new Set(inputs.map((input, index) => `input-${input.identifier ?? index + 1}`));
+        for (const service of [...this.accessory.services]) {
+            if (service.UUID === this.platform.Service.InputSource.UUID
+                && service.subtype?.startsWith('input-')
+                && !configuredSubtypes.has(service.subtype)) {
+                this.tvService.removeLinkedService(service);
+                this.accessory.removeService(service);
+                this.platform.log.info(`Removed stale REGZA input from ${this.device.name}: ${service.displayName}.`);
+            }
+        }
         for (const input of inputs) {
             const identifier = input.identifier ?? inputs.indexOf(input) + 1;
             const subtype = `input-${identifier}`;
@@ -138,8 +153,6 @@ class RegzaTvAccessory {
         this.recordUserOperation();
     }
     async setInput(identifier) {
-        this.currentInput = identifier;
-        this.accessory.context.currentInput = identifier;
         const input = this.getInputs().find(item => (item.identifier ?? this.getInputs().indexOf(item) + 1) === identifier);
         if (input) {
             if (identifier >= 1 && identifier <= 3) {
@@ -147,6 +160,9 @@ class RegzaTvAccessory {
             }
             this.platform.log.info(`Switching ${this.device.name} to input ${input.name} using key=${input.key}.`);
             await this.client.sendKey(input.key);
+            this.currentInput = identifier;
+            this.accessory.context.currentInput = identifier;
+            this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, identifier);
             this.recordUserOperation();
             if (identifier >= 1 && identifier <= 3) {
                 await this.sleep(750);
@@ -210,9 +226,11 @@ class RegzaTvAccessory {
                 await this.client.sendKey('display');
                 break;
             case this.platform.Characteristic.RemoteKey.NEXT_TRACK:
+                await this.prepareOperationWake(previousOperationAt);
                 await this.client.channelUp();
                 break;
             case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK:
+                await this.prepareOperationWake(previousOperationAt);
                 await this.client.channelDown();
                 break;
             default:
@@ -345,7 +363,7 @@ class RegzaTvAccessory {
             const playback = await this.client.getPlaybackStatus();
             const detectedActive = playback.status === 0 && playback.content_type === 'broadcast'
                 ? true
-                : await this.client.probePowerWithMute(this.device.operationCommandDelayMs ?? 250);
+                : await this.withMuteOperationLock(() => this.client.probePowerWithMute(this.device.operationCommandDelayMs ?? 250));
             const changed = detectedActive !== this.active;
             this.updatePowerState(detectedActive, true);
             if (changed) {
@@ -414,6 +432,9 @@ class RegzaTvAccessory {
     }
     async setMute(targetMuted) {
         await this.prepareOperationWake();
+        await this.withMuteOperationLock(() => this.setMuteUnlocked(targetMuted));
+    }
+    async setMuteUnlocked(targetMuted) {
         const before = await this.client.getMuteStatus();
         if (before.status !== 0) {
             await this.client.mute();
@@ -463,7 +484,7 @@ class RegzaTvAccessory {
     async prepareOperationWake(previousOperationAt = this.lastUserOperationAt) {
         const now = Date.now();
         const wakeThresholdMs = (this.device.operationPowerOnThresholdSeconds ?? 30) * 1000;
-        if (now - previousOperationAt < wakeThresholdMs) {
+        if (!shouldPrepareOperationWake(this.device.powerMode, now - previousOperationAt, wakeThresholdMs)) {
             return;
         }
         await this.client.powerOn();
@@ -497,6 +518,20 @@ class RegzaTvAccessory {
             return;
         }
         await this.probePowerStatus(true);
+    }
+    async withMuteOperationLock(operation) {
+        const previous = this.muteOperationQueue;
+        let release = () => undefined;
+        this.muteOperationQueue = new Promise(resolve => {
+            release = resolve;
+        });
+        await previous;
+        try {
+            return await operation();
+        }
+        finally {
+            release();
+        }
     }
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));

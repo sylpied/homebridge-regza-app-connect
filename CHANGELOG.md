@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.7.2
+
+### Fixed
+
+- Prevented the operation-wake preflight from sending a toggle key on legacy toggle-only models, which could turn an active TV off.
+- Added best-effort mute restoration when a mute-based power probe fails after sending its first Mute command.
+- Serialized mute probes and normal HomeKit Mute changes to prevent overlapping toggle sequences.
+- Applied operation-wake preflight consistently to Next/Previous channel actions.
+- Updated HomeKit input state only after the REGZA input command succeeds.
+- Preserved cached HomeKit accessories across TV display-name changes by matching stable MAC/IP identity while retaining legacy UUID compatibility.
+- Removed stale HomeKit input services after inputs are deleted from plugin configuration.
+- Updated the REGZA HTTP User-Agent version.
+- Kept the Input Sources section open while adding or deleting entries in the custom settings UI.
+- Assigned new input identifiers from the highest existing identifier to avoid duplicates after deletions.
+
+### Tests
+
+- Added regression tests for discrete/toggle operation wake, stable device identity, successful mute probing, standby detection, and mute restoration after failure.
+
 ## 0.7.1
 
 ### Fixed

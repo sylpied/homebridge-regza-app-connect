@@ -1,10 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegzaPlatform = void 0;
+exports.getDeviceIdentity = getDeviceIdentity;
 const settings_1 = require("./settings");
 const platformAccessory_1 = require("./platformAccessory");
 const modelProfiles_1 = require("./modelProfiles");
 const remoteKeys_1 = require("./remoteKeys");
+function getDeviceIdentity(device) {
+    return (device.mac || device.ip).trim().toLowerCase();
+}
 class RegzaPlatform {
     log;
     config;
@@ -36,15 +40,24 @@ class RegzaPlatform {
             }
             const normalizedDevice = this.normalizeDeviceConfig(device);
             this.logDeviceConfig(normalizedDevice);
-            const uuid = this.api.hap.uuid.generate(`${settings_1.PLUGIN_NAME}:${normalizedDevice.mac ?? normalizedDevice.ip}:${normalizedDevice.name}`);
-            configuredUuids.add(uuid);
-            const existingAccessory = this.cachedAccessories.find(accessory => accessory.UUID === uuid);
+            const identity = getDeviceIdentity(normalizedDevice);
+            const uuid = this.api.hap.uuid.generate(`${settings_1.PLUGIN_NAME}:${identity}`);
+            const legacyUuid = this.api.hap.uuid.generate(`${settings_1.PLUGIN_NAME}:${normalizedDevice.mac ?? normalizedDevice.ip}:${normalizedDevice.name}`);
+            const existingAccessory = this.cachedAccessories.find(accessory => {
+                const cachedDevice = accessory.context.device;
+                const cachedIdentity = cachedDevice?.ip
+                    ? getDeviceIdentity({ ip: cachedDevice.ip, mac: cachedDevice.mac })
+                    : undefined;
+                return accessory.UUID === uuid || accessory.UUID === legacyUuid || cachedIdentity === identity;
+            });
             if (existingAccessory) {
+                configuredUuids.add(existingAccessory.UUID);
                 this.log.info(`Restoring REGZA TV from cache: ${normalizedDevice.name}`);
                 existingAccessory.context.device = normalizedDevice;
                 new platformAccessory_1.RegzaTvAccessory(this, existingAccessory, normalizedDevice);
                 continue;
             }
+            configuredUuids.add(uuid);
             this.log.info(`Adding new REGZA TV: ${normalizedDevice.name}`);
             const accessory = new this.api.platformAccessory(normalizedDevice.name, uuid);
             accessory.context.device = normalizedDevice;
