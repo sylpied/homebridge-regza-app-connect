@@ -1,7 +1,10 @@
 import type { PlatformAccessory } from 'homebridge';
-import { RegzaDeviceConfig } from './settings';
+import { RegzaDeviceConfig, RegzaInputConfig } from './settings';
 import type { RegzaPlatform } from './platform';
 export declare function shouldPrepareOperationWake(powerMode: RegzaDeviceConfig['powerMode'], idleMs: number, thresholdMs: number): boolean;
+export declare function getBroadcastInputKey(channel: string): string;
+export declare function findInputIdentifier(inputs: RegzaInputConfig[], expectedKey: string): number | undefined;
+export declare function isPlaybackDefinitelyActive(status: number, contentType: string): boolean;
 export declare class RegzaTvAccessory {
     private readonly platform;
     private readonly accessory;

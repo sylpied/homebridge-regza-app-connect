@@ -5,11 +5,44 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RegzaTvAccessory = void 0;
 exports.shouldPrepareOperationWake = shouldPrepareOperationWake;
+exports.getBroadcastInputKey = getBroadcastInputKey;
+exports.findInputIdentifier = findInputIdentifier;
+exports.isPlaybackDefinitelyActive = isPlaybackDefinitelyActive;
 const wake_on_lan_1 = __importDefault(require("wake_on_lan"));
 const settings_1 = require("./settings");
 const regzaClient_1 = require("./regzaClient");
+const remoteKeys_1 = require("./remoteKeys");
 function shouldPrepareOperationWake(powerMode, idleMs, thresholdMs) {
     return powerMode === 'discrete' && idleMs >= thresholdMs;
+}
+function getBroadcastInputKey(channel) {
+    if (channel.startsWith('JP-G0004')) {
+        return remoteKeys_1.RemoteKeys.BS;
+    }
+    if (channel.startsWith('JP-G0006') || channel.startsWith('JP-G0007')) {
+        return remoteKeys_1.RemoteKeys.CS;
+    }
+    return remoteKeys_1.RemoteKeys.TERRESTRIAL;
+}
+function matchesInputKey(configuredKey, expectedKey) {
+    const aliases = {
+        [remoteKeys_1.RemoteKeys.TERRESTRIAL]: ['terrestrial'],
+        [remoteKeys_1.RemoteKeys.BS]: ['bs'],
+        [remoteKeys_1.RemoteKeys.CS]: ['cs'],
+        [remoteKeys_1.RemoteKeys.HDMI_NEXT_ACTIVE]: ['hdmiNextActive'],
+    };
+    return configuredKey.toUpperCase() === expectedKey.toUpperCase()
+        || (aliases[expectedKey] ?? []).some(alias => configuredKey.toLowerCase() === alias.toLowerCase());
+}
+function findInputIdentifier(inputs, expectedKey) {
+    const index = inputs.findIndex(input => matchesInputKey(input.key, expectedKey));
+    if (index === -1) {
+        return undefined;
+    }
+    return inputs[index].identifier ?? index + 1;
+}
+function isPlaybackDefinitelyActive(status, contentType) {
+    return status === 0 && (contentType === 'broadcast' || contentType === 'external');
 }
 class RegzaTvAccessory {
     platform;
@@ -155,7 +188,9 @@ class RegzaTvAccessory {
     async setInput(identifier) {
         const input = this.getInputs().find(item => (item.identifier ?? this.getInputs().indexOf(item) + 1) === identifier);
         if (input) {
-            if (identifier >= 1 && identifier <= 3) {
+            const isBroadcastInput = [remoteKeys_1.RemoteKeys.TERRESTRIAL, remoteKeys_1.RemoteKeys.BS, remoteKeys_1.RemoteKeys.CS]
+                .some(key => matchesInputKey(input.key, key));
+            if (isBroadcastInput) {
                 await this.prepareOperationWake();
             }
             this.platform.log.info(`Switching ${this.device.name} to input ${input.name} using key=${input.key}.`);
@@ -164,7 +199,7 @@ class RegzaTvAccessory {
             this.accessory.context.currentInput = identifier;
             this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, identifier);
             this.recordUserOperation();
-            if (identifier >= 1 && identifier <= 3) {
+            if (isBroadcastInput) {
                 await this.sleep(750);
                 await this.pollStatus();
             }
@@ -262,13 +297,21 @@ class RegzaTvAccessory {
     }
     async cycleBroadcastBand(direction) {
         await this.prepareOperationWake();
-        const broadcastIdentifiers = [1, 2, 3];
+        const inputs = this.getInputs();
+        const broadcastInputs = [remoteKeys_1.RemoteKeys.TERRESTRIAL, remoteKeys_1.RemoteKeys.BS, remoteKeys_1.RemoteKeys.CS]
+            .map(key => inputs.find(input => matchesInputKey(input.key, key)))
+            .filter((input) => input !== undefined);
+        if (broadcastInputs.length === 0) {
+            return;
+        }
+        const broadcastIdentifiers = broadcastInputs.map(input => input.identifier ?? inputs.indexOf(input) + 1);
         const currentIndex = broadcastIdentifiers.indexOf(this.currentInput);
-        const targetIdentifier = currentIndex === -1
-            ? 1
-            : broadcastIdentifiers[(currentIndex + direction + broadcastIdentifiers.length) % broadcastIdentifiers.length];
-        const targetKey = targetIdentifier === 2 ? 'bs' : targetIdentifier === 3 ? 'cs' : 'terrestrial';
-        await this.client.sendKey(targetKey);
+        const targetIndex = currentIndex === -1
+            ? 0
+            : (currentIndex + direction + broadcastInputs.length) % broadcastInputs.length;
+        const targetInput = broadcastInputs[targetIndex];
+        const targetIdentifier = targetInput.identifier ?? inputs.indexOf(targetInput) + 1;
+        await this.client.sendKey(targetInput.key);
         this.currentInput = targetIdentifier;
         this.accessory.context.currentInput = targetIdentifier;
         this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, targetIdentifier);
@@ -361,7 +404,7 @@ class RegzaTvAccessory {
         this.powerProbeRunning = true;
         try {
             const playback = await this.client.getPlaybackStatus();
-            const detectedActive = playback.status === 0 && playback.content_type === 'broadcast'
+            const detectedActive = isPlaybackDefinitelyActive(playback.status, playback.content_type)
                 ? true
                 : await this.withMuteOperationLock(() => this.client.probePowerWithMute(this.device.operationCommandDelayMs ?? 250));
             const changed = detectedActive !== this.active;
@@ -379,32 +422,36 @@ class RegzaTvAccessory {
         }
     }
     async pollStatus() {
-        try {
-            const [playback, mute] = await Promise.all([
-                this.client.getPlaybackStatus(),
-                this.client.getMuteStatus(),
-            ]);
+        const [playbackResult, muteResult] = await Promise.allSettled([
+            this.client.getPlaybackStatus(),
+            this.client.getMuteStatus(),
+        ]);
+        if (playbackResult.status === 'fulfilled') {
+            const playback = playbackResult.value;
             if (playback.status === 0) {
-                if (playback.content_type === 'external' && this.currentInput !== 4) {
-                    this.currentInput = 4;
-                    this.accessory.context.currentInput = 4;
-                    this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, 4);
+                if (playback.content_type === 'external') {
+                    this.updatePowerState(true, true);
+                    const inputIdentifier = findInputIdentifier(this.getInputs(), remoteKeys_1.RemoteKeys.HDMI_NEXT_ACTIVE);
+                    if (inputIdentifier !== undefined && this.currentInput !== inputIdentifier) {
+                        this.currentInput = inputIdentifier;
+                        this.accessory.context.currentInput = inputIdentifier;
+                        this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, inputIdentifier);
+                    }
                 }
                 else if (playback.content_type === 'broadcast') {
                     this.updatePowerState(true, true);
                     const channel = playback.epg_info_current?.channel ?? '';
-                    const inputIdentifier = channel.startsWith('JP-G0004')
-                        ? 2
-                        : channel.startsWith('JP-G0006') || channel.startsWith('JP-G0007')
-                            ? 3
-                            : 1;
-                    if (inputIdentifier !== this.currentInput) {
+                    const inputIdentifier = findInputIdentifier(this.getInputs(), getBroadcastInputKey(channel));
+                    if (inputIdentifier !== undefined && inputIdentifier !== this.currentInput) {
                         this.currentInput = inputIdentifier;
                         this.accessory.context.currentInput = inputIdentifier;
                         this.tvService.updateCharacteristic(this.platform.Characteristic.ActiveIdentifier, inputIdentifier);
                     }
                 }
             }
+        }
+        if (muteResult.status === 'fulfilled') {
+            const mute = muteResult.value;
             if (mute.status === 0) {
                 const detectedMuted = mute.mute === 'on';
                 if (detectedMuted !== this.muted) {
@@ -413,6 +460,9 @@ class RegzaTvAccessory {
                     this.speakerService.updateCharacteristic(this.platform.Characteristic.Mute, detectedMuted);
                 }
             }
+        }
+        const failures = [playbackResult, muteResult].filter(result => result.status === 'rejected');
+        if (failures.length === 0) {
             if (this.statusPollFailureCount > 0) {
                 if (this.platform.config.debug === true) {
                     this.platform.log.debug(`REGZA v2 status polling recovered for ${this.device.name} after ` +
@@ -421,11 +471,17 @@ class RegzaTvAccessory {
                 this.statusPollFailureCount = 0;
             }
         }
-        catch (error) {
+        else {
             this.statusPollFailureCount += 1;
             if (this.platform.config.debug === true && this.statusPollFailureCount === 1) {
+                const reasons = failures
+                    .map(result => result.status === 'rejected'
+                    ? result.reason instanceof Error ? result.reason.message : String(result.reason)
+                    : '')
+                    .filter(Boolean)
+                    .join('; ');
                 this.platform.log.debug(`Unable to poll REGZA v2 status for ${this.device.name}: ` +
-                    `${error instanceof Error ? error.message : String(error)}. ` +
+                    `${reasons}. ` +
                     'Further consecutive failures will be suppressed until polling recovers.');
             }
         }
