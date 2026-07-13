@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.7.3
+
+### Fixed
+
+- Reflected HDMI playback as ON in HomeKit when the REGZA v2 API reports an active external input.
+- Processed playback and mute polling independently so a mute-status failure no longer discards a successful power/input update.
+- Resolved terrestrial, BS, CS, and HDMI state updates using configured input identifiers instead of fixed identifiers.
+- Made contextual terrestrial/BS/CS cycling follow the configured inputs and identifiers.
+- Avoided a mute-based power probe when broadcast or HDMI playback already proves that the TV is ON.
+
+### Tests
+
+- Added regression coverage for broadcast channel classification, custom input identifiers, and definite broadcast/HDMI ON states.
+
 ## 0.7.2
 
 ### Fixed

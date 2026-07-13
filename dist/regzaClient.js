@@ -195,7 +195,7 @@ class RegzaClient {
         const headers = {
             'Accept': '*/*',
             'Connection': 'close',
-            'User-Agent': 'homebridge-regza-app-connect/0.7.2',
+            'User-Agent': 'homebridge-regza-app-connect/0.7.3',
         };
         if (authorization) {
             headers.Authorization = authorization;
