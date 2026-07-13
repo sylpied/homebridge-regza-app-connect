@@ -14,6 +14,7 @@ export class RegzaTvAccessory {
   private powerProbeRunning = false;
   private powerStateConfirmedAt = 0;
   private lastUserOperationAt = 0;
+  private statusPollFailureCount = 0;
   private navigationModeActive = false;
   private navigationSelectionMade = false;
   private navigationTimer?: NodeJS.Timeout;
@@ -434,11 +435,23 @@ export class RegzaTvAccessory {
           this.speakerService.updateCharacteristic(this.platform.Characteristic.Mute, detectedMuted);
         }
       }
+
+      if (this.statusPollFailureCount > 0) {
+        if (this.platform.config.debug === true) {
+          this.platform.log.debug(
+            `REGZA v2 status polling recovered for ${this.device.name} after ` +
+            `${this.statusPollFailureCount} failed attempt${this.statusPollFailureCount === 1 ? '' : 's'}.`,
+          );
+        }
+        this.statusPollFailureCount = 0;
+      }
     } catch (error) {
-      if (this.platform.config.debug === true) {
+      this.statusPollFailureCount += 1;
+      if (this.platform.config.debug === true && this.statusPollFailureCount === 1) {
         this.platform.log.debug(
           `Unable to poll REGZA v2 status for ${this.device.name}: ` +
-          `${error instanceof Error ? error.message : String(error)}`,
+          `${error instanceof Error ? error.message : String(error)}. ` +
+          'Further consecutive failures will be suppressed until polling recovers.',
         );
       }
     }

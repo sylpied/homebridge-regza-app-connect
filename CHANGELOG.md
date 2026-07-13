@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.1
+
+### Fixed
+
+- Suppressed repeated REGZA v2 status-poll errors after the first consecutive failure, even when debug logging is enabled.
+- Added one debug recovery message showing how many polling attempts failed before communication resumed.
+
 ## 0.7.0
 
 ### Added
