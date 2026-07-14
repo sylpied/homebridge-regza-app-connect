@@ -4,8 +4,8 @@
   "singular": true,
   "customUi": true,
   "customUiPath": "./homebridge-ui",
-  "headerDisplay": "Control Toshiba REGZA TVs via REGZA App Connect. v0.7.5 serializes TV requests and improves low-noise power detection after connection failures. REGZA 55J10X is verified with HTTPS port 4430.",
-  "footerDisplay": "After changing settings, restart Homebridge. For REGZA 55J10X, choose model=55J10X and enter IP, username, and password.",
+  "headerDisplay": "Control Toshiba REGZA TVs and compatible recorders. REGZA 55J10X and DBR-M590 remote control are verified.",
+  "footerDisplay": "After changing settings, restart Homebridge. Choose the matching model profile and enter its IP address and Digest credentials.",
   "schema": {
     "type": "object",
     "properties": {
@@ -25,12 +25,12 @@
         ]
       },
       "devices": {
-        "title": "REGZA TVs",
+        "title": "REGZA Devices",
         "type": "array",
         "default": [],
         "items": {
           "type": "object",
-          "title": "REGZA TV",
+          "title": "REGZA Device",
           "required": [
             "name",
             "ip"
@@ -39,14 +39,14 @@
             "name": {
               "title": "Name",
               "type": "string",
-              "default": "REGZA",
+              "default": "REGZA 55J10X",
               "placeholder": "Living REGZA"
             },
             "ip": {
               "title": "IP Address",
               "type": "string",
               "default": "",
-              "placeholder": "192.168.100.150"
+              "placeholder": "192.168.1.100"
             },
             "model": {
               "title": "REGZA Model Profile",
@@ -54,13 +54,19 @@
               "default": "55J10X",
               "oneOf": [
                 {
-                  "title": "REGZA 55J10X / J10X series (verified)",
+                  "title": "55J10X / J10X series (verified)",
                   "enum": [
                     "55J10X"
                   ]
                 },
                 {
-                  "title": "Custom / Manual settings",
+                  "title": "DBR-M590 (verified remote control)",
+                  "enum": [
+                    "DBR-M590"
+                  ]
+                },
+                {
+                  "title": "Other / Manual settings",
                   "enum": [
                     "custom"
                   ]
@@ -68,11 +74,31 @@
               ],
               "description": "Model profiles apply tested defaults such as protocol, port, power keys, and certificate handling. Choose Custom to manually configure everything."
             },
+            "deviceType": {
+              "title": "Device Type",
+              "type": "string",
+              "default": "tv",
+              "oneOf": [
+                { "title": "Television", "enum": ["tv"] },
+                { "title": "Recorder", "enum": ["recorder"] }
+              ],
+              "description": "Controls recorder-specific remote behavior and TV volume forwarding. Model profiles set this automatically."
+            },
+            "publishMode": {
+              "title": "HomeKit Publication Mode",
+              "type": "string",
+              "default": "external",
+              "oneOf": [
+                { "title": "Child Bridge (televisions)", "enum": ["bridged"] },
+                { "title": "Standalone Accessory (additional TV/recorder)", "enum": ["external"] }
+              ],
+              "description": "Apple Home Remote normally exposes only one Television per bridge. DBR-M590 therefore uses a standalone accessory and must be added once in the Home app."
+            },
             "mac": {
               "title": "MAC Address for Wake on LAN / Identity",
               "type": "string",
               "default": "",
-              "placeholder": "5C:93:A2:DB:3C:E1",
+              "placeholder": "AA:BB:CC:DD:EE:FF",
               "description": "Optional. Used for stable HomeKit identity and Wake on LAN only when enableWakeOnLan=true."
             },
             "username": {
@@ -173,7 +199,7 @@
             "wakeOnLanAddress": {
               "title": "Wake on LAN Broadcast Address",
               "type": "string",
-              "default": "192.168.100.255"
+              "default": "255.255.255.255"
             },
             "wakeOnLanPort": {
               "title": "Wake on LAN Port",
@@ -260,7 +286,7 @@
               "default": "guideFirst",
               "oneOf": [
                 { "title": "Open Program Guide, then Select", "enum": ["guideFirst"] },
-                { "title": "Open Settings Menu, then Select", "enum": ["menuFirst"] },
+                { "title": "Open Menu, then Select", "enum": ["menuFirst"] },
                 { "title": "Open Quick Menu, then Select", "enum": ["quickFirst"] },
                 { "title": "Always send Select", "enum": ["normal"] }
               ],
@@ -280,7 +306,7 @@
               "default": 15,
               "minimum": 1,
               "maximum": 60,
-              "description": "After a normal Select inside the guide/menu, send Back and close it after this delay. Additional arrows or Select presses restart the timer."
+              "description": "On REGZA TVs, send Back and close the guide/menu after this delay. Recorders only reset the plugin's internal navigation state, without sending Back. Additional arrows or Select presses restart the timer."
             },
             "contextualRemoteArrows": {
               "title": "Contextual Arrow Buttons",
@@ -316,7 +342,7 @@
                   "identifier": 3
                 },
                 {
-                  "name": "HDMI (Next Active)",
+                  "name": "HDMI Next Active",
                   "key": "40BF3A",
                   "identifier": 4
                 }
@@ -332,7 +358,7 @@
                   "name": {
                     "title": "Display Name",
                     "type": "string",
-                    "default": "HDMI (Next Active)"
+                    "default": "HDMI Next Active"
                   },
                   "key": {
                     "title": "REGZA Remote Key",

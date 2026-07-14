@@ -67,10 +67,36 @@ export function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures: n
   return consecutiveFailures >= 3;
 }
 
+export function getRecorderPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause' {
+  return currentlyPaused ? 'play' : 'pause';
+}
+
+export function getPlayPauseKey(
+  currentlyPaused: boolean,
+): 'play' | 'pause' {
+  return getRecorderPlayPauseKey(currentlyPaused);
+}
+
+export function shouldAutoCloseNavigationMenu(deviceType: RegzaDeviceConfig['deviceType']): boolean {
+  // Recorder menus can transition directly into playback. Sending Back from a
+  // timer would then interrupt playback, so recorder navigation only resets
+  // the plugin's internal routing state.
+  return deviceType !== 'recorder';
+}
+
+export type NavigationLayer = 'viewing' | 'menu' | 'dateSelection';
+
+export function getNavigationLayerAfterDateSelection(
+  currentLayer: NavigationLayer,
+): NavigationLayer {
+  return currentLayer === 'dateSelection' ? 'menu' : currentLayer;
+}
+
 export class RegzaTvAccessory {
   private readonly client: RegzaClient;
+  private readonly volumeClient: RegzaClient;
   private readonly tvService: Service;
-  private readonly speakerService: Service;
+  private readonly speakerService?: Service;
   private active = false;
   private muted = false;
   private currentInput = 1;
@@ -83,16 +109,19 @@ export class RegzaTvAccessory {
   private statusPollRunning?: Promise<boolean>;
   private statusPollTimer?: NodeJS.Timeout;
   private navigationModeActive = false;
+  private navigationLayer: NavigationLayer = 'viewing';
   private navigationSelectionMade = false;
   private navigationTimer?: NodeJS.Timeout;
   private stalePowerProbeTimer?: NodeJS.Timeout;
   private muteOperationQueue: Promise<void> = Promise.resolve();
   private operationWakeRunning?: Promise<void>;
+  private playbackPaused = false;
 
   constructor(
     private readonly platform: RegzaPlatform,
     private readonly accessory: PlatformAccessory,
     private readonly device: RegzaDeviceConfig,
+    volumeControlDevice?: RegzaDeviceConfig,
   ) {
     this.client = new RegzaClient({
       log: platform.log,
@@ -110,20 +139,51 @@ export class RegzaTvAccessory {
       powerOnKey: device.powerOnKey,
       powerOffKey: device.powerOffKey,
       powerToggleKey: device.powerToggleKey ?? device.powerKey,
+      remoteResponseMode: device.remoteResponseMode,
     });
+    this.volumeClient = volumeControlDevice
+      ? new RegzaClient({
+        log: platform.log,
+        name: volumeControlDevice.name,
+        ip: volumeControlDevice.ip,
+        username: volumeControlDevice.username,
+        password: volumeControlDevice.password,
+        port: volumeControlDevice.port,
+        protocol: volumeControlDevice.protocol,
+        allowSelfSignedCertificate: volumeControlDevice.allowSelfSignedCertificate,
+        debugEnabled: Boolean(platform.config.debug),
+        keyMap: volumeControlDevice.keyMap,
+        timeoutMs: volumeControlDevice.requestTimeoutMs,
+        powerMode: volumeControlDevice.powerMode,
+        powerOnKey: volumeControlDevice.powerOnKey,
+        powerOffKey: volumeControlDevice.powerOffKey,
+        powerToggleKey: volumeControlDevice.powerToggleKey ?? volumeControlDevice.powerKey,
+        remoteResponseMode: volumeControlDevice.remoteResponseMode,
+      })
+      : this.client;
 
     this.platform.log.info(`Initializing REGZA accessory: ${device.name} (ip=${device.ip}, mac=${device.mac ? 'configured' : 'not configured'}, username=${device.username ? 'configured' : 'missing'}, password=${device.password ? 'configured' : 'missing'})`);
 
     this.accessory.getService(this.platform.Service.AccessoryInformation)
-      ?.setCharacteristic(this.platform.Characteristic.Manufacturer, 'TVS REGZA / Toshiba')
-      .setCharacteristic(this.platform.Characteristic.Model, 'REGZA App Connect')
+      ?.setCharacteristic(this.platform.Characteristic.Name, device.name)
+      .setCharacteristic(this.platform.Characteristic.Manufacturer, 'TVS REGZA / Toshiba')
+      .setCharacteristic(this.platform.Characteristic.Model, device.model ?? 'REGZA App Connect')
       .setCharacteristic(this.platform.Characteristic.SerialNumber, device.mac ?? device.ip);
 
     this.tvService = this.accessory.getService(this.platform.Service.Television)
       ?? this.accessory.addService(this.platform.Service.Television, device.name, 'television');
+    this.tvService.setPrimaryService();
 
-    this.speakerService = this.accessory.getService(this.platform.Service.TelevisionSpeaker)
-      ?? this.accessory.addService(this.platform.Service.TelevisionSpeaker, `${device.name} Speaker`, 'speaker');
+    if (device.supportsVolumeControl !== false || volumeControlDevice !== undefined) {
+      this.speakerService = this.accessory.getService(this.platform.Service.TelevisionSpeaker)
+        ?? this.accessory.addService(this.platform.Service.TelevisionSpeaker, `${device.name} Speaker`, 'speaker');
+    } else {
+      const staleSpeaker = this.accessory.getService(this.platform.Service.TelevisionSpeaker);
+      if (staleSpeaker) {
+        this.tvService.removeLinkedService(staleSpeaker);
+        this.accessory.removeService(staleSpeaker);
+      }
+    }
 
     this.active = accessory.context.active === true;
     this.muted = accessory.context.muted === true;
@@ -133,7 +193,9 @@ export class RegzaTvAccessory {
       : Date.now();
 
     this.configureTelevision();
-    this.configureSpeaker();
+    if (this.speakerService) {
+      this.configureSpeaker();
+    }
     this.configureInputs();
     this.startStatusPolling();
     this.startPowerProbing();
@@ -142,6 +204,7 @@ export class RegzaTvAccessory {
 
   private configureTelevision(): void {
     this.tvService
+      .setCharacteristic(this.platform.Characteristic.Name, this.device.name)
       .setCharacteristic(this.platform.Characteristic.ConfiguredName, this.device.name)
       .setCharacteristic(this.platform.Characteristic.SleepDiscoveryMode, this.platform.Characteristic.SleepDiscoveryMode.ALWAYS_DISCOVERABLE);
 
@@ -158,6 +221,9 @@ export class RegzaTvAccessory {
   }
 
   private configureSpeaker(): void {
+    if (!this.speakerService) {
+      return;
+    }
     this.speakerService
       .setCharacteristic(this.platform.Characteristic.Active, this.platform.Characteristic.Active.ACTIVE)
       .setCharacteristic(this.platform.Characteristic.VolumeControlType, this.platform.Characteristic.VolumeControlType.RELATIVE);
@@ -170,9 +236,9 @@ export class RegzaTvAccessory {
       .onSet(async value => {
         await this.prepareOperationWake();
         if (value === this.platform.Characteristic.VolumeSelector.INCREMENT) {
-          await this.client.volumeUp();
+          await this.volumeClient.volumeUp();
         } else {
-          await this.client.volumeDown();
+          await this.volumeClient.volumeDown();
         }
         this.recordUserOperation();
       });
@@ -205,10 +271,16 @@ export class RegzaTvAccessory {
         ?? this.accessory.addService(this.platform.Service.InputSource, input.name, subtype);
 
       inputService
+        .setCharacteristic(this.platform.Characteristic.Name, input.name)
         .setCharacteristic(this.platform.Characteristic.Identifier, identifier)
         .setCharacteristic(this.platform.Characteristic.ConfiguredName, input.name)
         .setCharacteristic(this.platform.Characteristic.IsConfigured, this.platform.Characteristic.IsConfigured.CONFIGURED)
-        .setCharacteristic(this.platform.Characteristic.InputSourceType, this.platform.Characteristic.InputSourceType.HDMI);
+        .setCharacteristic(
+          this.platform.Characteristic.InputSourceType,
+          [RemoteKeys.TERRESTRIAL, RemoteKeys.BS, RemoteKeys.CS].some(key => matchesInputKey(input.key, key))
+            ? this.platform.Characteristic.InputSourceType.TUNER
+            : this.platform.Characteristic.InputSourceType.HDMI,
+        );
 
       this.tvService.addLinkedService(inputService);
     }
@@ -262,6 +334,13 @@ export class RegzaTvAccessory {
 
   private async handleRemoteKey(value: number): Promise<void> {
     const previousOperationAt = this.lastUserOperationAt;
+    if (this.platform.config.debug) {
+      this.platform.log.info(
+        `[${this.device.name}] HomeKit remote key=${value}, deviceType=${this.device.deviceType ?? 'tv'}, ` +
+        `selectKeyMode=${this.device.selectKeyMode ?? 'guideFirst'}, navigation=${this.navigationModeActive}, ` +
+        `layer=${this.navigationLayer}.`,
+      );
+    }
     switch (value) {
       case this.platform.Characteristic.RemoteKey.ARROW_UP:
         if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
@@ -302,7 +381,14 @@ export class RegzaTvAccessory {
         break;
       case this.platform.Characteristic.RemoteKey.BACK:
         await this.client.sendKey('return');
-        this.endNavigationMode();
+        if (this.navigationLayer === 'dateSelection') {
+          this.navigationLayer = getNavigationLayerAfterDateSelection(this.navigationLayer);
+          this.navigationSelectionMade = false;
+          this.refreshNavigationTimeout();
+          this.logNavigationTransition('back from date selection');
+        } else {
+          this.endNavigationMode();
+        }
         break;
       case this.platform.Characteristic.RemoteKey.EXIT:
         await this.client.sendKey('exit');
@@ -312,12 +398,27 @@ export class RegzaTvAccessory {
         await this.client.sendKey('display');
         break;
       case this.platform.Characteristic.RemoteKey.NEXT_TRACK:
-        await this.prepareOperationWake(previousOperationAt);
-        await this.client.channelUp();
+        if (this.device.deviceType === 'recorder') {
+          await this.client.sendKey('next');
+        } else {
+          await this.prepareOperationWake(previousOperationAt);
+          await this.client.channelUp();
+        }
         break;
       case this.platform.Characteristic.RemoteKey.PREVIOUS_TRACK:
-        await this.prepareOperationWake(previousOperationAt);
-        await this.client.channelDown();
+        if (this.device.deviceType === 'recorder') {
+          await this.client.sendKey('previous');
+        } else {
+          await this.prepareOperationWake(previousOperationAt);
+          await this.client.channelDown();
+        }
+        break;
+      case this.platform.Characteristic.RemoteKey.PLAY_PAUSE:
+        {
+          const playPauseKey = getPlayPauseKey(this.playbackPaused);
+          await this.client.sendKey(playPauseKey);
+          this.playbackPaused = !this.playbackPaused;
+        }
         break;
       default:
         this.platform.log.debug(`Unsupported HomeKit remote key: ${value}`);
@@ -331,8 +432,18 @@ export class RegzaTvAccessory {
     if (mode === 'normal' || this.navigationModeActive) {
       await this.client.sendKey('enter');
       if (this.navigationModeActive) {
-        this.navigationSelectionMade = true;
-        this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 15, true);
+        if (this.navigationLayer === 'dateSelection') {
+          this.navigationLayer = getNavigationLayerAfterDateSelection(this.navigationLayer);
+          this.navigationSelectionMade = false;
+          this.refreshNavigationTimeout();
+          this.logNavigationTransition('select from date selection');
+        } else {
+          this.navigationSelectionMade = true;
+          this.scheduleNavigationReset(
+            this.device.navigationPostSelectResetSeconds ?? 15,
+            shouldAutoCloseNavigationMenu(this.device.deviceType),
+          );
+        }
       }
       return;
     }
@@ -341,14 +452,15 @@ export class RegzaTvAccessory {
       ? 'menu'
       : mode === 'quickFirst'
         ? 'quick'
-        : 'guide';
+        : mode === 'timeshiftFirst'
+          ? 'timeshift'
+          : 'guide';
     await this.client.sendKey(openingKey);
     this.navigationModeActive = true;
+    this.navigationLayer = 'menu';
     this.navigationSelectionMade = false;
     this.refreshNavigationTimeout();
-    this.platform.log.debug(
-      `Navigation mode started for ${this.device.name} using ${openingKey}.`,
-    );
+    this.logNavigationTransition(`opened with ${openingKey}`);
   }
 
   private async cycleBroadcastBand(direction: -1 | 1): Promise<void> {
@@ -384,9 +496,15 @@ export class RegzaTvAccessory {
     }
 
     if (this.navigationSelectionMade) {
-      this.scheduleNavigationReset(this.device.navigationPostSelectResetSeconds ?? 15, true);
+      this.scheduleNavigationReset(
+        this.device.navigationPostSelectResetSeconds ?? 15,
+        shouldAutoCloseNavigationMenu(this.device.deviceType),
+      );
     } else {
-      this.scheduleNavigationReset(this.device.navigationTimeoutSeconds ?? 60, false);
+      this.scheduleNavigationReset(
+        this.device.navigationTimeoutSeconds ?? 60,
+        shouldAutoCloseNavigationMenu(this.device.deviceType),
+      );
     }
   }
 
@@ -406,6 +524,10 @@ export class RegzaTvAccessory {
 
   private async closeNavigationMenu(): Promise<void> {
     try {
+      if (this.navigationLayer === 'dateSelection') {
+        await this.client.sendKey('return');
+        await this.sleep(200);
+      }
       await this.client.sendKey('return');
       this.platform.log.debug(`Navigation menu auto-closed for ${this.device.name}.`);
     } catch (error) {
@@ -424,7 +546,15 @@ export class RegzaTvAccessory {
       this.navigationTimer = undefined;
     }
     this.navigationModeActive = false;
+    this.navigationLayer = 'viewing';
     this.navigationSelectionMade = false;
+  }
+
+  private logNavigationTransition(reason: string): void {
+    this.platform.log.debug(
+      `Navigation state for ${this.device.name}: layer=${this.navigationLayer}, ` +
+      `active=${this.navigationModeActive}, reason=${reason}.`,
+    );
   }
 
   private getInputs(): RegzaInputConfig[] {
@@ -432,6 +562,9 @@ export class RegzaTvAccessory {
   }
 
   private startStatusPolling(): void {
+    if (this.device.supportsV2Status === false) {
+      return;
+    }
     const intervalSeconds = Math.max(120, this.device.pollingInterval ?? 120);
     if (intervalSeconds <= 0) {
       return;
@@ -460,6 +593,9 @@ export class RegzaTvAccessory {
   }
 
   private startPowerProbing(): void {
+    if (this.device.supportsV2Status === false) {
+      return;
+    }
     const mode = this.device.powerProbeMode
       ?? (this.device.enableMutePowerProbe === false ? 'optimistic' : 'operation');
     if (mode === 'optimistic') {
@@ -612,9 +748,12 @@ export class RegzaTvAccessory {
   }
 
   private async setMuteUnlocked(targetMuted: boolean): Promise<void> {
-    const before = await this.client.getMuteStatus();
+    if (!this.speakerService) {
+      return;
+    }
+    const before = await this.volumeClient.getMuteStatus();
     if (before.status !== 0) {
-      await this.client.mute();
+      await this.volumeClient.mute();
       this.recordUserOperation();
       return;
     }
@@ -628,10 +767,10 @@ export class RegzaTvAccessory {
       return;
     }
 
-    await this.client.mute();
+    await this.volumeClient.mute();
     this.recordUserOperation();
     await this.sleep(500);
-    const after = await this.client.getMuteStatus();
+    const after = await this.volumeClient.getMuteStatus();
     if (after.status === 0 && (after.mute === 'on') === targetMuted) {
       this.muted = targetMuted;
       this.accessory.context.muted = targetMuted;
@@ -642,7 +781,7 @@ export class RegzaTvAccessory {
 
   private wake(mac: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      wol.wake(mac, { address: this.device.wakeOnLanAddress ?? '192.168.100.255', port: this.device.wakeOnLanPort ?? 2304 }, error => {
+      wol.wake(mac, { address: this.device.wakeOnLanAddress ?? '255.255.255.255', port: this.device.wakeOnLanPort ?? 2304 }, error => {
         if (error) {
           reject(error);
           return;
@@ -703,6 +842,10 @@ export class RegzaTvAccessory {
     if (this.stalePowerProbeTimer) {
       clearTimeout(this.stalePowerProbeTimer);
       this.stalePowerProbeTimer = undefined;
+    }
+
+    if (this.device.supportsV2Status === false) {
+      return;
     }
 
     const mode = this.device.powerProbeMode

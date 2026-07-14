@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.7.2
+# homebridge-regza-app-connect v0.8.0
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -11,9 +11,51 @@ Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Con
 - Separate Power ON/OFF keys
 - Toggle power key fallback for legacy models
 - Model profile support
+- Toshiba DBR-M590 network remote support
 - Low-load REGZA v2 power and input status polling
 - Stateful HomeKit remote navigation mode
 - Verified on REGZA 55J10X
+
+The verified 55J10X and DBR-M590 profiles are published as separate HomeKit Television accessories so Apple Home Remote can identify and select both. Add each accessory once in the Home app after installing or migrating to v0.8.0.
+
+## Installation and Home app pairing
+
+Verified TV and recorder profiles are published as **standalone HomeKit Television accessories**, rather than child services inside the Homebridge bridge. Pairing therefore differs slightly from a typical Homebridge plugin.
+
+1. Install `homebridge-regza-app-connect` from the Plugins page in Homebridge UI.
+2. Open the plugin settings and add each TV or recorder.
+3. Select the device type and model. Verified profiles automatically supply the name, transport, port, and remote-key mapping.
+4. Enter the IP address, username, and password. Enter a MAC address only when a TV requires WOL. DBR-M590 identity is IP-based, so its MAC address may be left blank.
+5. Save the settings and restart Homebridge.
+6. In the Apple Home app, select **+ → Add Accessory → More options**.
+7. Select each advertised `REGZA 55J10X` or `DBR-M590` accessory separately and enter the normal Homebridge setup code. Scanning a QR code is not required.
+8. Repeat steps 6–7 for every configured device.
+
+### Do not pair the REGZA App Connect bridge
+
+Apple Home may show a `Homebridge Regza App Connect` bridge alongside the individual TV/recorder accessories. With the verified v0.8.0 profiles, **do not pair that bridge; pair only the individually advertised TV and recorder accessories**. The bridge does not need to be paired first.
+
+Homebridge UI's **Child Bridge** option is an optional process-isolation feature. Whether it is enabled or disabled, the Home app pairing targets remain the separately advertised TV and recorder accessories. Homebridge or its Child Bridge must remain running in the background, but the bridge itself does not need to be registered in the Home app.
+
+If an accessory does not appear, place the iPhone/iPad and Homebridge on the same LAN and check the Homebridge log for successful publication. If the device was paired before, check for an old pairing in both the Home app and Homebridge cache. DBR-M590 uses its IP address for HomeKit identity so adding or clearing its optional MAC address does not create another accessory.
+
+## Toshiba DBR-M590
+
+The DBR-M590 uses HTTP port 80 with Digest authentication. Selecting the `DBR-M590` profile applies recorder-specific short key codes.
+
+Apple Home Remote does not expose multiple Television services inside one HomeKit bridge as separate choices. The DBR-M590 is therefore published as a standalone HomeKit accessory by default. After updating and restarting Homebridge, add the DBR-M590 once from **Add Accessory** in the Home app using the Homebridge setup code. Both the REGZA TV and recorder can then appear in the remote device picker.
+
+- Power, Start Menu, arrows, Select, Back, and playback controls
+- Terrestrial, BS, and CS switching
+- First Select opens Start Menu; subsequent Select and arrows navigate normally
+- Play/Pause alternates the recorder's dedicated Play and Pause commands
+- Toggle power key `12`
+- HTTP 2xx success validation for the recorder's blank HTML response
+- No TV v2 status polling because those endpoints are unavailable on DBR-M590
+- When a REGZA TV is configured too, DBR volume/mute controls are forwarded to the first REGZA TV
+- Standalone (`external`) HomeKit publication is recommended
+
+Power state is optimistic. Power changes made through the physical remote or another control path may not be reflected in HomeKit.
 
 ## Verified behavior on REGZA 55J10X
 
@@ -93,7 +135,7 @@ The Homebridge custom settings UI groups essential settings first and keeps conn
     {
       "name": "REGZA 55J10X",
       "model": "55J10X",
-      "ip": "192.168.100.150",
+      "ip": "192.0.2.10",
       "username": "your-regza-username",
       "password": "your-regza-password"
     }
@@ -200,14 +242,14 @@ The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can
 
 Outside navigation mode, Up/Down change channel. Right cycles terrestrial → BS → CS → terrestrial, while Left cycles in reverse. From HDMI, the first cycle returns to terrestrial. Absolute terrestrial/BS/CS/HDMI selection remains available in HomeKit's separate input-selection screen. The first Select opens the configured guide/menu; arrows then become normal directional keys and Select becomes Enter.
 
-After a selection is made, 15 seconds without another arrow or Select sends Back automatically, closes the guide/menu and exits navigation mode. Additional navigation restarts the timer. The next Select can therefore open the guide again without requiring a manual Back press.
+On REGZA TVs, after a selection is made, 15 seconds without another arrow or Select sends Back automatically, closes the guide/menu and exits navigation mode. Additional navigation restarts the timer. The next Select can therefore open the guide again without requiring a manual Back press. Recorders only reset the plugin's internal navigation state after the timeout; they do not receive an automatic Back command that could interrupt playback.
 
 Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation mode. The plugin cannot directly observe a menu being closed with the physical remote, so these timers act as fallbacks.
 
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.7.2.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.8.0.tgz
 ```
 
 Then restart Homebridge.

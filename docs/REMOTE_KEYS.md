@@ -4,7 +4,9 @@ English | [日本語](REMOTE_KEYS.ja.md)
 
 This table transcribes a community-provided REGZA remote-code reference. Behavior may vary by model and firmware. **Only entries in the verified section have been tested with this plugin.** Use unverified recording and disc commands carefully.
 
-## Verified on 55J10X
+## Televisions (REGZA)
+
+### Verified on 55J10X
 
 | Action | Code |
 |---|---|
@@ -21,7 +23,9 @@ This table transcribes a community-provided REGZA remote-code reference. Behavio
 | Discrete Power ON/OFF | `40BF7E` / `40BF7F` |
 | Settings menu | `40BFD0` |
 
-## Unverified reference codes
+### Unverified TV reference codes
+
+These are **long-form television codes**, not DBR-M590 recorder short codes.
 
 | Action | Code | Action | Code |
 |---|---|---|---|
@@ -42,4 +46,28 @@ This table transcribes a community-provided REGZA remote-code reference. Behavio
 | Eject | `40BE93` | Disc | `40BE9E` |
 | Subtitles | `43BC52` | Data broadcast | `43BC14` |
 
-The source table also lists `40BE20`, `40BE21`, 30-second skip `40BE22`, and 10-second rewind `40BE23`. Please report tested codes with the exact TV model in a GitHub Issue.
+The TV source table also lists `40BE20`, `40BE21`, 30-second skip `40BE22`, and 10-second rewind `40BE23`.
+
+## Recorders
+
+### DBR-M590
+
+DBR-M590 sends recorder-specific short codes to `/remote/remote.htm?key=` rather than the TV six-digit codes.
+
+| Operation | Code |
+|---|---|
+| Power toggle | `12` |
+| Start Menu | `46` |
+| Select / Back / Exit | `44` / `4b` / `60` |
+| Up / Down / Left / Right | `c0` / `c8` / `cc` / `c4` |
+| Play / Pause / Stop | `13` / `17` / `16` |
+| Rewind / Fast-forward | `9a` / `98` |
+| Previous / Next skip | `84` / `80` |
+| Terrestrial / BS / CS | `bd` / `be` / `bf` |
+| Record / Recording list | `15` / `6d` |
+| Display | `5a` |
+| Time Slip | `1a` |
+
+Power, Start Menu, Down, and Select have been verified on a physical DBR-M590. The APK identifies `1a` as `TIME_SLIP`; it does not open the Time Shift program guide. The verified Start Menu code `46` is therefore used for the recorder's first Select action.
+
+Please report tested codes with the device type, exact model, code, and result in a GitHub Issue.

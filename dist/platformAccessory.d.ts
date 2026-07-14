@@ -8,13 +8,19 @@ export declare function isPlaybackDefinitelyActive(status: number, contentType: 
 export declare function getStatusPollDelayMs(intervalSeconds: number, consecutiveFailures: number): number;
 export declare function isConnectivityFailure(error: unknown): boolean;
 export declare function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures: number): boolean;
+export declare function getRecorderPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
+export declare function getPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
+export declare function shouldAutoCloseNavigationMenu(deviceType: RegzaDeviceConfig['deviceType']): boolean;
+export type NavigationLayer = 'viewing' | 'menu' | 'dateSelection';
+export declare function getNavigationLayerAfterDateSelection(currentLayer: NavigationLayer): NavigationLayer;
 export declare class RegzaTvAccessory {
     private readonly platform;
     private readonly accessory;
     private readonly device;
     private readonly client;
+    private readonly volumeClient;
     private readonly tvService;
-    private readonly speakerService;
+    private readonly speakerService?;
     private active;
     private muted;
     private currentInput;
@@ -27,12 +33,14 @@ export declare class RegzaTvAccessory {
     private statusPollRunning?;
     private statusPollTimer?;
     private navigationModeActive;
+    private navigationLayer;
     private navigationSelectionMade;
     private navigationTimer?;
     private stalePowerProbeTimer?;
     private muteOperationQueue;
     private operationWakeRunning?;
-    constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
+    private playbackPaused;
+    constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig, volumeControlDevice?: RegzaDeviceConfig);
     private configureTelevision;
     private configureSpeaker;
     private configureInputs;
@@ -45,6 +53,7 @@ export declare class RegzaTvAccessory {
     private scheduleNavigationReset;
     private closeNavigationMenu;
     private endNavigationMode;
+    private logNavigationTransition;
     private getInputs;
     private startStatusPolling;
     private scheduleStatusPoll;

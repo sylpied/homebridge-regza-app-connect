@@ -1,5 +1,15 @@
 # REGZA App Connect protocol discovery
 
+## DBR-M590 legacy remote
+
+DBR-M590 does not expose the TV v2 API, but provides this Digest-authenticated remote endpoint over HTTP port 80:
+
+```text
+GET /remote/remote.htm?key=<recorder short code>
+```
+
+Success returns HTTP 200 with a blank HTML page. Unlike the TV API it does not return body `0`, so success validation is selected by model profile.
+
 English | [日本語](PROTOCOL.ja.md)
 
 Some REGZA models expose a self-describing v2 API. Querying the support endpoint is the recommended first step when investigating a new model.

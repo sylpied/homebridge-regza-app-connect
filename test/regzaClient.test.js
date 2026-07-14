@@ -90,3 +90,25 @@ test('request queue continues after an earlier request fails', async () => {
   await assert.rejects(first, /simulated network failure/);
   assert.equal((await second).status, 0);
 });
+
+test('legacy recorder mode accepts an HTTP 2xx response with an HTML body', async () => {
+  const client = new RegzaClient({
+    log: { debug() {}, info() {}, warn() {}, error() {} },
+    name: 'DBR-M590', ip: '192.0.2.2', username: 'user', password: 'pass',
+    protocol: 'http', remoteResponseMode: 'httpStatus', keyMap: { menu: '46' },
+  });
+  client.requestWithDigest = async () => ({
+    statusCode: 200, statusMessage: 'OK', headers: {}, body: '<html><title>blank</title></html>',
+  });
+
+  assert.match(await client.sendKey('menu'), /<html>/);
+});
+
+test('TV mode still requires the response body to be zero', async () => {
+  const client = createClient();
+  client.requestWithDigest = async () => ({
+    statusCode: 200, statusMessage: 'OK', headers: {}, body: '<html></html>',
+  });
+
+  await assert.rejects(client.sendKey('powerOn'), /did not execute/);
+});

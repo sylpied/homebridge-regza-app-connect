@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import http from 'node:http';
 import https from 'node:https';
 import { RemoteKeys } from './remoteKeys';
-import type { PowerMode } from './settings';
+import type { PowerMode, RemoteResponseMode } from './settings';
 
 export type RegzaProtocol = 'http' | 'https';
 
@@ -23,6 +23,7 @@ export interface RegzaClientOptions {
   powerOnKey?: string;
   powerOffKey?: string;
   powerToggleKey?: string;
+  remoteResponseMode?: RemoteResponseMode;
 }
 
 interface SimpleResponse {
@@ -77,6 +78,9 @@ const DEFAULT_KEY_MAP: Record<string, string> = {
   menu: RemoteKeys.MENU,
   quick: RemoteKeys.QUICK,
   exit: RemoteKeys.EXIT,
+  blue: RemoteKeys.BLUE,
+  play: RemoteKeys.PLAY,
+  pause: RemoteKeys.PAUSE,
   terrestrial: RemoteKeys.TERRESTRIAL,
   bs: RemoteKeys.BS,
   cs: RemoteKeys.CS,
@@ -88,6 +92,7 @@ export class RegzaClient {
   private readonly keyMap: Record<string, string>;
   private readonly timeoutMs: number;
   private readonly powerMode: PowerMode;
+  private readonly remoteResponseMode: RemoteResponseMode;
   private requestQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly options: RegzaClientOptions) {
@@ -102,6 +107,7 @@ export class RegzaClient {
     };
     this.timeoutMs = options.timeoutMs ?? 5000;
     this.powerMode = options.powerMode ?? 'discrete';
+    this.remoteResponseMode = options.remoteResponseMode ?? 'zero';
   }
 
   async sendKey(key: string): Promise<string> {
@@ -132,8 +138,9 @@ export class RegzaClient {
         throw new Error(`REGZA returned HTTP ${response.statusCode} ${response.statusMessage}, body=${JSON.stringify(body)}`);
       }
 
-      // REGZA remote.htm returns text/plain: 0=success, 1/2=not executed/invalid depending on model.
-      if (body !== '0') {
+      // TV App Connect returns text/plain "0". Legacy Toshiba recorders return
+      // an empty HTML page and signal command acceptance with HTTP 2xx only.
+      if (this.remoteResponseMode === 'zero' && body !== '0') {
         throw new Error(`REGZA did not execute key=${mappedKey}; response body=${JSON.stringify(body)}`);
       }
 
@@ -292,7 +299,7 @@ export class RegzaClient {
     const headers: Record<string, string> = {
       'Accept': '*/*',
       'Connection': 'close',
-      'User-Agent': 'homebridge-regza-app-connect/0.7.5',
+      'User-Agent': 'homebridge-regza-app-connect/0.8.0',
     };
 
     if (authorization) {

@@ -1,5 +1,5 @@
 import type { Logging } from 'homebridge';
-import type { PowerMode } from './settings';
+import type { PowerMode, RemoteResponseMode } from './settings';
 export type RegzaProtocol = 'http' | 'https';
 export interface RegzaClientOptions {
     log: Logging;
@@ -17,6 +17,7 @@ export interface RegzaClientOptions {
     powerOnKey?: string;
     powerOffKey?: string;
     powerToggleKey?: string;
+    remoteResponseMode?: RemoteResponseMode;
 }
 export interface RegzaPlaybackStatus {
     status: number;
@@ -37,6 +38,7 @@ export declare class RegzaClient {
     private readonly keyMap;
     private readonly timeoutMs;
     private readonly powerMode;
+    private readonly remoteResponseMode;
     private requestQueue;
     constructor(options: RegzaClientOptions);
     sendKey(key: string): Promise<string>;

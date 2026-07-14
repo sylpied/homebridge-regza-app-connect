@@ -20,6 +20,9 @@ export const RemoteKeys = {
   MENU: '40BFD0',
   QUICK: '40BF27',
   EXIT: '40BF3C',
+  BLUE: '40BF73',
+  PLAY: '40BE2D',
+  PAUSE: '40BF50',
 
   TERRESTRIAL: '40BF7A',
   BS: '40BF7C',
