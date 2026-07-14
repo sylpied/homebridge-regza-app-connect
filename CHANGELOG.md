@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.5
+
+### Fixed
+
+- Serialized all REGZA HTTP/HTTPS Digest request sequences per TV to avoid concurrent network bursts.
+- Coalesced concurrent operation-linked Power ON preparation into one command sequence.
+- Marked a stale TV state as OFF only after three consecutive connection failures.
+- Suppressed repeated power-probe failures and logged recovery only in debug mode.
+
+### Tests
+
+- Added coverage for request serialization and connectivity-error classification.
+
 ## 0.7.4
 
 ### Changed

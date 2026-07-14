@@ -49,3 +49,44 @@ test('mute probe restores a changed mute state when TV is active', async () => {
   assert.equal(await client.probePowerWithMute(0), true);
   assert.equal(muteCalls, 2);
 });
+
+test('digest request sequences are serialized', async () => {
+  const client = createClient();
+  let activeRequests = 0;
+  let maximumActiveRequests = 0;
+  client.request = async () => {
+    activeRequests += 1;
+    maximumActiveRequests = Math.max(maximumActiveRequests, activeRequests);
+    await new Promise(resolve => setTimeout(resolve, 5));
+    activeRequests -= 1;
+    return {
+      statusCode: 200,
+      statusMessage: 'OK',
+      headers: {},
+      body: '{"status":0,"content_type":"broadcast","epg_info_current":null}',
+    };
+  };
+
+  await Promise.all([client.getPlaybackStatus(), client.getPlaybackStatus()]);
+  assert.equal(maximumActiveRequests, 1);
+});
+
+test('request queue continues after an earlier request fails', async () => {
+  const client = createClient();
+  let requestCalls = 0;
+  client.request = async () => {
+    requestCalls += 1;
+    if (requestCalls === 1) throw new Error('simulated network failure');
+    return {
+      statusCode: 200,
+      statusMessage: 'OK',
+      headers: {},
+      body: '{"status":0,"content_type":"broadcast","epg_info_current":null}',
+    };
+  };
+
+  const first = client.getPlaybackStatus();
+  const second = client.getPlaybackStatus();
+  await assert.rejects(first, /simulated network failure/);
+  assert.equal((await second).status, 0);
+});

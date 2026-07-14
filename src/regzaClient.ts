@@ -88,6 +88,7 @@ export class RegzaClient {
   private readonly keyMap: Record<string, string>;
   private readonly timeoutMs: number;
   private readonly powerMode: PowerMode;
+  private requestQueue: Promise<void> = Promise.resolve();
 
   constructor(private readonly options: RegzaClientOptions) {
     this.protocol = options.protocol ?? 'https';
@@ -249,6 +250,10 @@ export class RegzaClient {
   }
 
   private async requestWithDigest(path: string): Promise<SimpleResponse> {
+    return this.withRequestLock(() => this.requestWithDigestUnlocked(path));
+  }
+
+  private async requestWithDigestUnlocked(path: string): Promise<SimpleResponse> {
     const first = await this.request(path);
     if (first.statusCode !== 401) {
       return first;
@@ -265,6 +270,21 @@ export class RegzaClient {
     return this.request(path, authorization);
   }
 
+  private async withRequestLock<T>(operation: () => Promise<T>): Promise<T> {
+    const previous = this.requestQueue;
+    let release: () => void = () => undefined;
+    this.requestQueue = new Promise<void>(resolve => {
+      release = resolve;
+    });
+
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
+  }
+
   private request(path: string, authorization?: string): Promise<SimpleResponse> {
     const useHttps = this.protocol === 'https';
     const transport = useHttps ? https : http;
@@ -272,7 +292,7 @@ export class RegzaClient {
     const headers: Record<string, string> = {
       'Accept': '*/*',
       'Connection': 'close',
-      'User-Agent': 'homebridge-regza-app-connect/0.7.4',
+      'User-Agent': 'homebridge-regza-app-connect/0.7.5',
     };
 
     if (authorization) {
