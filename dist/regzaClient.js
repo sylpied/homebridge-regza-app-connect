@@ -41,6 +41,7 @@ class RegzaClient {
     keyMap;
     timeoutMs;
     powerMode;
+    requestQueue = Promise.resolve();
     constructor(options) {
         this.options = options;
         this.protocol = options.protocol ?? 'https';
@@ -176,6 +177,9 @@ class RegzaClient {
         }
     }
     async requestWithDigest(path) {
+        return this.withRequestLock(() => this.requestWithDigestUnlocked(path));
+    }
+    async requestWithDigestUnlocked(path) {
         const first = await this.request(path);
         if (first.statusCode !== 401) {
             return first;
@@ -189,13 +193,27 @@ class RegzaClient {
         const authorization = this.createDigestAuthorization(path, challenge);
         return this.request(path, authorization);
     }
+    async withRequestLock(operation) {
+        const previous = this.requestQueue;
+        let release = () => undefined;
+        this.requestQueue = new Promise(resolve => {
+            release = resolve;
+        });
+        await previous;
+        try {
+            return await operation();
+        }
+        finally {
+            release();
+        }
+    }
     request(path, authorization) {
         const useHttps = this.protocol === 'https';
         const transport = useHttps ? node_https_1.default : node_http_1.default;
         const headers = {
             'Accept': '*/*',
             'Connection': 'close',
-            'User-Agent': 'homebridge-regza-app-connect/0.7.4',
+            'User-Agent': 'homebridge-regza-app-connect/0.7.5',
         };
         if (authorization) {
             headers.Authorization = authorization;

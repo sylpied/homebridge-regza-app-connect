@@ -54,6 +54,19 @@ export function getStatusPollDelayMs(intervalSeconds: number, consecutiveFailure
   return Math.max(intervalSeconds, backoffSeconds) * 1000;
 }
 
+export function isConnectivityFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+  const code = (error as NodeJS.ErrnoException).code;
+  return ['EHOSTUNREACH', 'ENETUNREACH', 'ECONNREFUSED', 'ECONNRESET', 'ETIMEDOUT'].includes(code ?? '')
+    || /timed out|couldn't connect|failed to connect/i.test(error.message);
+}
+
+export function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures: number): boolean {
+  return consecutiveFailures >= 3;
+}
+
 export class RegzaTvAccessory {
   private readonly client: RegzaClient;
   private readonly tvService: Service;
@@ -62,6 +75,8 @@ export class RegzaTvAccessory {
   private muted = false;
   private currentInput = 1;
   private powerProbeRunning = false;
+  private powerProbeFailureCount = 0;
+  private powerProbeConnectivityFailureCount = 0;
   private powerStateConfirmedAt = 0;
   private lastUserOperationAt = 0;
   private statusPollFailureCount = 0;
@@ -72,6 +87,7 @@ export class RegzaTvAccessory {
   private navigationTimer?: NodeJS.Timeout;
   private stalePowerProbeTimer?: NodeJS.Timeout;
   private muteOperationQueue: Promise<void> = Promise.resolve();
+  private operationWakeRunning?: Promise<void>;
 
   constructor(
     private readonly platform: RegzaPlatform,
@@ -458,19 +474,19 @@ export class RegzaTvAccessory {
     }
   }
 
-  private async probePowerStatus(force: boolean): Promise<void> {
+  private async probePowerStatus(force: boolean): Promise<boolean> {
     if (this.powerProbeRunning) {
-      return;
+      return false;
     }
 
     const intervalMs = (this.device.powerProbeInterval ?? 60) * 1000;
     if (!force && Date.now() - this.powerStateConfirmedAt < intervalMs) {
-      return;
+      return false;
     }
 
     // Avoid showing the mute overlay while the user is navigating a TV menu.
     if (this.navigationModeActive) {
-      return;
+      return false;
     }
 
     this.powerProbeRunning = true;
@@ -489,11 +505,43 @@ export class RegzaTvAccessory {
           `REGZA power probe: ${this.device.name} is ${detectedActive ? 'ON' : 'OFF'}.`,
         );
       }
+      if (this.powerProbeFailureCount > 0 && this.platform.config.debug === true) {
+        this.platform.log.debug(
+          `REGZA power probing recovered for ${this.device.name} after ` +
+          `${this.powerProbeFailureCount} failed attempt${this.powerProbeFailureCount === 1 ? '' : 's'}.`,
+        );
+      }
+      this.powerProbeFailureCount = 0;
+      this.powerProbeConnectivityFailureCount = 0;
+      return true;
     } catch (error) {
-      this.platform.log.warn(
-        `Unable to probe REGZA power state for ${this.device.name}: ` +
-        `${error instanceof Error ? error.message : String(error)}`,
-      );
+      this.powerProbeFailureCount += 1;
+      const connectivityFailure = isConnectivityFailure(error);
+      this.powerProbeConnectivityFailureCount = connectivityFailure
+        ? this.powerProbeConnectivityFailureCount + 1
+        : 0;
+      if (shouldConfirmOffAfterConnectivityFailures(this.powerProbeConnectivityFailureCount)) {
+        const changed = this.active;
+        this.updatePowerState(false, true);
+        if (changed) {
+          this.platform.log.info(
+            `REGZA power probe: ${this.device.name} is OFF after ` +
+            `${this.powerProbeConnectivityFailureCount} consecutive connection failures.`,
+          );
+        }
+        return true;
+      }
+      if (this.powerProbeFailureCount === 1) {
+        const message = `Unable to probe REGZA power state for ${this.device.name}: ` +
+          `${error instanceof Error ? error.message : String(error)}. ` +
+          'Further consecutive failures will be suppressed.';
+        if (connectivityFailure || this.platform.config.debug === true) {
+          this.platform.log.debug(message);
+        } else {
+          this.platform.log.warn(message);
+        }
+      }
+      return false;
     } finally {
       this.powerProbeRunning = false;
     }
@@ -625,10 +673,24 @@ export class RegzaTvAccessory {
     if (!shouldPrepareOperationWake(this.device.powerMode, now - previousOperationAt, wakeThresholdMs)) {
       return;
     }
+    if (this.operationWakeRunning) {
+      await this.operationWakeRunning;
+      return;
+    }
 
-    await this.client.powerOn();
-    this.updatePowerState(true, true);
-    await this.sleep(this.device.operationCommandDelayMs ?? 250);
+    const operation = (async () => {
+      await this.client.powerOn();
+      this.updatePowerState(true, true);
+      await this.sleep(this.device.operationCommandDelayMs ?? 250);
+    })();
+    this.operationWakeRunning = operation;
+    try {
+      await operation;
+    } finally {
+      if (this.operationWakeRunning === operation) {
+        this.operationWakeRunning = undefined;
+      }
+    }
   }
 
   private recordUserOperation(): void {
@@ -662,7 +724,16 @@ export class RegzaTvAccessory {
       return;
     }
 
-    await this.probePowerStatus(true);
+    const completed = await this.probePowerStatus(true);
+    const shouldRetryConnectivity = this.powerProbeConnectivityFailureCount > 0
+      && this.powerProbeConnectivityFailureCount < 3;
+    const shouldRetryOtherFailure = this.powerProbeConnectivityFailureCount === 0
+      && this.powerProbeFailureCount > 0
+      && this.powerProbeFailureCount < 3;
+    if (!completed && (shouldRetryConnectivity || shouldRetryOtherFailure)) {
+      this.stalePowerProbeTimer = setTimeout(() => void this.runStalePowerProbe(), 60_000);
+      this.stalePowerProbeTimer.unref();
+    }
   }
 
   private async withMuteOperationLock<T>(operation: () => Promise<T>): Promise<T> {

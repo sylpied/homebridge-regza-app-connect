@@ -37,6 +37,7 @@ export declare class RegzaClient {
     private readonly keyMap;
     private readonly timeoutMs;
     private readonly powerMode;
+    private requestQueue;
     constructor(options: RegzaClientOptions);
     sendKey(key: string): Promise<string>;
     powerOn(): Promise<void>;
@@ -52,6 +53,8 @@ export declare class RegzaClient {
     probePowerWithMute(delayMs?: number): Promise<boolean>;
     private getJson;
     private requestWithDigest;
+    private requestWithDigestUnlocked;
+    private withRequestLock;
     private request;
     private parseDigestChallenge;
     private createDigestAuthorization;

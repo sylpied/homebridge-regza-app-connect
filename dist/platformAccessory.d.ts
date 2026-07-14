@@ -6,6 +6,8 @@ export declare function getBroadcastInputKey(channel: string): string;
 export declare function findInputIdentifier(inputs: RegzaInputConfig[], expectedKey: string): number | undefined;
 export declare function isPlaybackDefinitelyActive(status: number, contentType: string): boolean;
 export declare function getStatusPollDelayMs(intervalSeconds: number, consecutiveFailures: number): number;
+export declare function isConnectivityFailure(error: unknown): boolean;
+export declare function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures: number): boolean;
 export declare class RegzaTvAccessory {
     private readonly platform;
     private readonly accessory;
@@ -17,6 +19,8 @@ export declare class RegzaTvAccessory {
     private muted;
     private currentInput;
     private powerProbeRunning;
+    private powerProbeFailureCount;
+    private powerProbeConnectivityFailureCount;
     private powerStateConfirmedAt;
     private lastUserOperationAt;
     private statusPollFailureCount;
@@ -27,6 +31,7 @@ export declare class RegzaTvAccessory {
     private navigationTimer?;
     private stalePowerProbeTimer?;
     private muteOperationQueue;
+    private operationWakeRunning?;
     constructor(platform: RegzaPlatform, accessory: PlatformAccessory, device: RegzaDeviceConfig);
     private configureTelevision;
     private configureSpeaker;

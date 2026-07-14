@@ -5,7 +5,9 @@ const {
   findInputIdentifier,
   getBroadcastInputKey,
   getStatusPollDelayMs,
+  isConnectivityFailure,
   isPlaybackDefinitelyActive,
+  shouldConfirmOffAfterConnectivityFailures,
   shouldPrepareOperationWake,
 } = require('../dist/platformAccessory');
 
@@ -13,6 +15,21 @@ test('operation wake is enabled only for discrete power mode after threshold', (
   assert.equal(shouldPrepareOperationWake('discrete', 30_000, 30_000), true);
   assert.equal(shouldPrepareOperationWake('discrete', 29_999, 30_000), false);
   assert.equal(shouldPrepareOperationWake('toggle', 60_000, 30_000), false);
+});
+
+test('only transport failures count as connectivity failures', () => {
+  const unreachable = new Error('connect EHOSTUNREACH');
+  unreachable.code = 'EHOSTUNREACH';
+  assert.equal(isConnectivityFailure(unreachable), true);
+  assert.equal(isConnectivityFailure(new Error('REGZA request timed out after 5000ms')), true);
+  assert.equal(isConnectivityFailure(new Error('REGZA authentication failed')), false);
+});
+
+test('power state is confirmed OFF only after three consecutive connectivity failures', () => {
+  assert.equal(shouldConfirmOffAfterConnectivityFailures(1), false);
+  assert.equal(shouldConfirmOffAfterConnectivityFailures(2), false);
+  assert.equal(shouldConfirmOffAfterConnectivityFailures(3), true);
+  assert.equal(shouldConfirmOffAfterConnectivityFailures(4), true);
 });
 
 test('device identity is stable across display-name and MAC letter-case changes', () => {
