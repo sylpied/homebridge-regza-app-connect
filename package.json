@@ -1,7 +1,7 @@
 {
   "name": "homebridge-regza-app-connect",
-  "version": "0.7.5",
-  "description": "Homebridge dynamic platform plugin for controlling REGZA TVs via REGZA App Connect.",
+  "version": "0.8.0",
+  "description": "Homebridge plugin for controlling REGZA TVs and compatible Toshiba recorders.",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

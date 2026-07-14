@@ -1,5 +1,15 @@
 # REGZA App Connectプロトコル調査ガイド
 
+## DBR-M590レガシーリモコン
+
+DBR-M590はTV用v2 APIを公開しませんが、HTTP 80番ポートでDigest認証された次のリモコンAPIを提供します。
+
+```text
+GET /remote/remote.htm?key=<レコーダー用短縮コード>
+```
+
+成功時はHTTP 200と空のHTMLページを返します。TVのような本文`0`は返さないため、モデルプロファイルごとに成功判定を分けます。
+
 [English](PROTOCOL.md) | 日本語
 
 一部のREGZAは、利用可能な機能を取得できるv2 APIを公開しています。未検証機種を調査するときは、最初にサポート情報APIを確認することを推奨します。

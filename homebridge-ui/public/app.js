@@ -3,13 +3,13 @@
     { name: '地デジ', key: '40BF7A', identifier: 1 },
     { name: 'BS', key: '40BF7C', identifier: 2 },
     { name: 'CS', key: '40BF7D', identifier: 3 },
-    { name: 'HDMI（次のアクティブ入力）', key: '40BF3A', identifier: 4 },
+    { name: 'HDMI Next Active', key: '40BF3A', identifier: 4 },
   ];
   const newDevice = () => ({
-    name: 'REGZA', ip: '', model: '55J10X', mac: '', username: '', password: '',
+    name: 'REGZA 55J10X', ip: '', model: '55J10X', deviceType: 'tv', publishMode: 'external', mac: '', username: '', password: '',
     protocol: 'https', port: 4430, allowSelfSignedCertificate: true,
     powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12',
-    enableWakeOnLan: false, wakeOnLanAddress: '192.168.100.255', wakeOnLanPort: 2304,
+    enableWakeOnLan: false, wakeOnLanAddress: '255.255.255.255', wakeOnLanPort: 2304,
     powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 120,
     enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60,
     operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst',
@@ -39,14 +39,16 @@
   const renderDevice = (device, index) => {
     const p = `d${index}`;
     const basic = `<div class="regza-grid">
+      ${select(`${p}-model`, t('model'), device.model || '55J10X', [['55J10X', t('j10x')], ['DBR-M590', t('dbrM590')], ['custom', t('custom')]])}
       ${input(`${p}-name`, t('tvName'), device.name)}
-      ${select(`${p}-model`, t('model'), device.model || '55J10X', [['55J10X', t('j10x')], ['custom', t('custom')]])}
-      ${input(`${p}-ip`, t('ip'), device.ip, 'text', 'placeholder="192.168.100.150"')}
-      ${input(`${p}-mac`, t('mac'), device.mac, 'text', 'placeholder="5C:93:A2:DB:3C:E1"', t('macHelp'))}
+      ${input(`${p}-ip`, t('ip'), device.ip, 'text', 'placeholder="192.168.1.100"')}
+      ${input(`${p}-mac`, t('mac'), device.mac, 'text', 'placeholder="AA:BB:CC:DD:EE:FF"', t('macHelp'))}
       ${input(`${p}-username`, t('username'), device.username)}
       ${input(`${p}-password`, t('password'), device.password, 'password')}
     </div>`;
     const connection = `<div class="regza-grid">
+      ${select(`${p}-device-type`, t('deviceType'), device.deviceType || (device.model === 'DBR-M590' ? 'recorder' : 'tv'), [['tv', t('television')], ['recorder', t('recorder')]], t('deviceTypeHelp'))}
+      ${select(`${p}-publish-mode`, t('publishMode'), device.publishMode || (device.deviceType === 'recorder' ? 'external' : 'bridged'), [['bridged', t('publishBridged')], ['external', t('publishExternal')]], t('publishModeHelp'))}
       ${select(`${p}-protocol`, t('protocol'), device.protocol || 'https', [['https', 'HTTPS'], ['http', 'HTTP']])}
       ${input(`${p}-port`, t('port'), device.port, 'number', 'min="1" max="65535"')}
       ${check(`${p}-selfsigned`, t('selfSigned'), device.allowSelfSignedCertificate !== false, t('selfSignedHelp'))}
@@ -100,11 +102,22 @@
   };
   const bindDevice = (device, index) => {
     const p = `d${index}`;
-    [['name','name'],['model','model'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
+    [['name','name'],['model','model'],['device-type','deviceType'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['publish-mode','publishMode'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
     [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['operation-wake','operationPowerOnThresholdSeconds'],['stale-probe','stalePowerProbeHours'],['command-delay','operationCommandDelayMs'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
     [['selfsigned','allowSelfSignedCertificate'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
     ['power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
-    byId(`${p}-model`)?.addEventListener('change', () => { if (device.model === '55J10X') applyJ10x(device); render(); scheduleUpdate(); });
+    byId(`${p}-model`)?.addEventListener('change', () => {
+      if (device.model === '55J10X') {
+        device.name = 'REGZA 55J10X';
+        applyJ10x(device);
+      } else if (device.model === 'DBR-M590') {
+        device.name = 'DBR-M590';
+        applyDbrM590(device);
+      } else {
+        device.name = '';
+      }
+      render(); scheduleUpdate();
+    });
     document.querySelector(`[data-index="${index}"] .regza-remove-device`).onclick = () => { config.devices.splice(index, 1); render(); scheduleUpdate(); };
     byId(`${p}-add-input`).onclick = () => {
       const identifier = Math.max(0, ...device.inputs.map((item) => Number(item.identifier) || 0)) + 1;
@@ -115,7 +128,37 @@
     renderInputs(device, index);
     updateConditional(device, index);
   };
-  const applyJ10x = (d) => Object.assign(d, { protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250 });
+  const applyJ10x = (d) => Object.assign(d, { deviceType: 'tv', publishMode: 'external', protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst', contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })) });
+  const applyDbrM590 = (d) => Object.assign(d, {
+    deviceType: 'recorder', publishMode: 'external', protocol: 'http', port: 80, allowSelfSignedCertificate: false,
+    powerMode: 'toggle', powerToggleKey: '12', enableWakeOnLan: false,
+    enableMutePowerProbe: false, powerProbeMode: 'optimistic',
+    selectKeyMode: 'menuFirst', contextualRemoteArrows: false,
+    keyMap: {
+      power: '12', powerToggle: '12', channelUp: '1e', channelDown: '1f',
+      up: 'c0', down: 'c8', left: 'cc', right: 'c4', enter: '44', return: '4b',
+      exit: '60', display: '5a', guide: 'b5', menu: '46', quick: '45',
+      blue: '29', terrestrial: 'bd', bs: 'be', cs: 'bf',
+      play: '13', pause: '17', stop: '16', rewind: '9a', fastForward: '98',
+      previous: '84', next: '80', record: '15', recordingList: '6d',
+    },
+    inputs: [
+      { name: '地デジ', key: 'bd', identifier: 1 },
+      { name: 'BS', key: 'be', identifier: 2 },
+      { name: 'CS', key: 'bf', identifier: 3 },
+    ],
+  });
+  const migrateDefaultInputs = (device) => {
+    if (device.model !== '55J10X' || !Array.isArray(device.inputs)) return;
+    device.inputs = device.inputs.map((item, index) => {
+      if (/^HDMI(?:（次のアクティブ入力）|\s*\(Next Active\))$/i.test(String(item.name || '').trim())) {
+        return { ...item, name: 'HDMI Next Active' };
+      }
+      if (!/^(?:Input Source|入力ソース)\s*\d+$/i.test(String(item.name || '').trim())) return item;
+      const replacement = defaultInputs[index];
+      return replacement ? { ...replacement, identifier: item.identifier ?? replacement.identifier } : item;
+    });
+  };
   const updateConditional = (device, index) => {
     const p = `d${index}`;
     byId(`${p}-discrete`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
@@ -159,11 +202,18 @@
   const loadTranslations = async () => {
     const hbLanguage = typeof homebridge.i18nCurrentLang === 'function' ? await homebridge.i18nCurrentLang() : navigator.language;
     const language = config.uiLanguage === 'auto' ? ((hbLanguage || '').toLowerCase().startsWith('ja') ? 'ja' : 'en') : config.uiLanguage;
-    try { const response = await fetch(`locales/${language}.json?v=0.7.5`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
+    try { const response = await fetch(`locales/${language}.json?v=0.8.0-9`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
   };
   const init = async () => {
     const blocks = await homebridge.getPluginConfig().catch(() => []); config = { ...defaults, ...(blocks[0] || {}) }; config.devices = Array.isArray(config.devices) ? config.devices : [];
     config.devices.forEach((device) => {
+      if (device.deviceType === 'recorder' && device.model !== 'custom') {
+        device.model = 'DBR-M590';
+        applyDbrM590(device);
+      } else if (device.model === '55J10X') {
+        device.publishMode = 'external';
+        migrateDefaultInputs(device);
+      }
       if (!device.powerProbeMode) device.powerProbeMode = device.enableMutePowerProbe === false ? 'optimistic' : 'operation';
       if (!device.pollingInterval || device.pollingInterval < 120) device.pollingInterval = 120;
     });

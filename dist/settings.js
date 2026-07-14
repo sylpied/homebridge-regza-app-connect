@@ -8,6 +8,6 @@ exports.DEFAULT_INPUTS = [
     { name: '地デジ', key: remoteKeys_1.RemoteKeys.TERRESTRIAL, identifier: 1 },
     { name: 'BS', key: remoteKeys_1.RemoteKeys.BS, identifier: 2 },
     { name: 'CS', key: remoteKeys_1.RemoteKeys.CS, identifier: 3 },
-    { name: 'HDMI（次のアクティブ入力）', key: remoteKeys_1.RemoteKeys.HDMI_NEXT_ACTIVE, identifier: 4 },
+    { name: 'HDMI Next Active', key: remoteKeys_1.RemoteKeys.HDMI_NEXT_ACTIVE, identifier: 4 },
 ];
 //# sourceMappingURL=settings.js.map

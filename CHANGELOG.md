@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.8.0
+
+- Added a verified Toshiba DBR-M590 recorder profile using HTTP port 80 and Digest authentication.
+- Added recorder-specific short remote codes for power, navigation, playback and broadcast-band selection.
+- Added HTTP-status response validation for legacy recorder commands that return blank HTML.
+- Disabled unavailable TV v2 polling and mute probing for the DBR-M590 profile.
+- Kept REGZA TV and DBR accessories separate even when a copied MAC address remains in both configurations.
+- Forwarded DBR HomeKit volume and mute controls to the first configured REGZA TV.
+- Added Start Menu-first Select behavior and alternating Play/Pause behavior for DBR-M590.
+- Added an explicit TV/recorder device-type selector to the Homebridge settings UI.
+- Kept Play/Pause mapped to the recorder's dedicated Play and Pause commands.
+- Marked restored and new accessories as HomeKit Television category for remote selection.
+- Published DBR-M590 as a standalone HomeKit accessory by default so it can appear alongside a REGZA TV in Apple Home Remote.
+- Added a HomeKit publication mode setting for bridged and standalone accessories.
+- Marked each Television service as the primary service so standalone recorders are recognized by Apple Home Remote.
+- Reordered the settings form and replaced environment-specific address examples with generic placeholders.
+- Migrated early DBR settings, including the incorrectly identified Time Shift mode, to Start Menu-first navigation.
+- Reset TV input defaults when selecting the 55J10X profile and explicitly persisted HomeKit accessory/input names.
+- Persisted restored Television category and primary-service metadata through Homebridge's accessory cache.
+- Repaired early recorder configurations whose device type and model profile became inconsistent.
+- Published verified TVs as standalone Television accessories too, avoiding the child bridge/home icon.
+- Added debug logging for effective HomeKit remote-key routing and marked broadcast inputs as tuners.
+- Mapped TV and recorder Play/Pause to alternating Pause/Play using model-specific codes.
+- Added explicit viewing, menu, and date-selection navigation layers; Select now returns from date selection to the guide. TV timeouts can close the on-screen menu, while recorder timeouts only reset internal state to avoid interrupting playback.
+- Migrated only generic `Input Source X` names to the verified 55J10X input defaults while preserving custom names.
+- Migrated legacy HDMI labels containing unsupported full-width punctuation to the HomeKit-safe `HDMI Next Active` name.
+- Kept Accessory Information limited to its standard Name and Model characteristics so Apple Home can validate standalone TVs and recorders.
+- Made the verified DBR-M590 remote map override stale TV/default mappings, including navigation, playback, Select and Back.
+- Unified Select and Back transitions from date selection to the guide/Time Shift menu layer and added navigation-state debug logging.
+- Explicitly set the standard Television Name characteristic for model-name publication.
+- Made recorder HomeKit identity IP-based so adding or clearing its optional MAC address no longer creates another accessory.
+- Documented the DBR-M590 legacy remote protocol and extracted key map.
+- Preserved explicit Custom model selections and user-edited recorder names in the settings UI.
+- Prevented recorder navigation timers from automatically sending Back during playback or menu use.
+- Documented the standalone TV/recorder pairing flow and clarified that the REGZA App Connect bridge itself is not paired in Apple Home.
+
 ## 0.7.5
 
 ### Fixed

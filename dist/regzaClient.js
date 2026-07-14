@@ -30,6 +30,9 @@ const DEFAULT_KEY_MAP = {
     menu: remoteKeys_1.RemoteKeys.MENU,
     quick: remoteKeys_1.RemoteKeys.QUICK,
     exit: remoteKeys_1.RemoteKeys.EXIT,
+    blue: remoteKeys_1.RemoteKeys.BLUE,
+    play: remoteKeys_1.RemoteKeys.PLAY,
+    pause: remoteKeys_1.RemoteKeys.PAUSE,
     terrestrial: remoteKeys_1.RemoteKeys.TERRESTRIAL,
     bs: remoteKeys_1.RemoteKeys.BS,
     cs: remoteKeys_1.RemoteKeys.CS,
@@ -41,6 +44,7 @@ class RegzaClient {
     keyMap;
     timeoutMs;
     powerMode;
+    remoteResponseMode;
     requestQueue = Promise.resolve();
     constructor(options) {
         this.options = options;
@@ -55,6 +59,7 @@ class RegzaClient {
         };
         this.timeoutMs = options.timeoutMs ?? 5000;
         this.powerMode = options.powerMode ?? 'discrete';
+        this.remoteResponseMode = options.remoteResponseMode ?? 'zero';
     }
     async sendKey(key) {
         const mappedKey = this.resolveKey(key);
@@ -79,8 +84,9 @@ class RegzaClient {
             if (response.statusCode < 200 || response.statusCode >= 300) {
                 throw new Error(`REGZA returned HTTP ${response.statusCode} ${response.statusMessage}, body=${JSON.stringify(body)}`);
             }
-            // REGZA remote.htm returns text/plain: 0=success, 1/2=not executed/invalid depending on model.
-            if (body !== '0') {
+            // TV App Connect returns text/plain "0". Legacy Toshiba recorders return
+            // an empty HTML page and signal command acceptance with HTTP 2xx only.
+            if (this.remoteResponseMode === 'zero' && body !== '0') {
                 throw new Error(`REGZA did not execute key=${mappedKey}; response body=${JSON.stringify(body)}`);
             }
             return body;
@@ -213,7 +219,7 @@ class RegzaClient {
         const headers = {
             'Accept': '*/*',
             'Connection': 'close',
-            'User-Agent': 'homebridge-regza-app-connect/0.7.5',
+            'User-Agent': 'homebridge-regza-app-connect/0.8.0',
         };
         if (authorization) {
             headers.Authorization = authorization;
