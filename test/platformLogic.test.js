@@ -76,6 +76,8 @@ test('DBR profile repairs stale key overrides with verified recorder keys', () =
   assert.equal(profiled.keyMap.timeshift, undefined);
   assert.equal(profiled.keyMap.blue, '29');
   assert.equal(profiled.keyMap.display, '5a');
+  assert.equal(profiled.keyMap.rewind, '9a');
+  assert.equal(profiled.keyMap.fastForward, '98');
 });
 
 test('55J10X is published as a standalone Television accessory', () => {

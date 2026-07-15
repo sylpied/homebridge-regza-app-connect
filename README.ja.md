@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.8.0
+# homebridge-regza-app-connect v0.8.1
 
 REGZA App Connect / TV Web Interface を使って、HomeKit から REGZA を操作する Homebridge Dynamic Platform Plugin です。
 
@@ -249,7 +249,7 @@ REGZAテレビでは、番組表／メニュー内で決定した後、矢印ま
 ## ローカルインストール
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.8.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.8.1.tgz
 ```
 
 その後、Homebridge を再起動してください。

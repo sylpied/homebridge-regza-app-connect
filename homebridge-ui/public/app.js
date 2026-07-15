@@ -202,7 +202,7 @@
   const loadTranslations = async () => {
     const hbLanguage = typeof homebridge.i18nCurrentLang === 'function' ? await homebridge.i18nCurrentLang() : navigator.language;
     const language = config.uiLanguage === 'auto' ? ((hbLanguage || '').toLowerCase().startsWith('ja') ? 'ja' : 'en') : config.uiLanguage;
-    try { const response = await fetch(`locales/${language}.json?v=0.8.0-9`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
+    try { const response = await fetch(`locales/${language}.json?v=0.8.1-1`); translations = response.ok ? await response.json() : {}; } catch { translations = {}; }
   };
   const init = async () => {
     const blocks = await homebridge.getPluginConfig().catch(() => []); config = { ...defaults, ...(blocks[0] || {}) }; config.devices = Array.isArray(config.devices) ? config.devices : [];

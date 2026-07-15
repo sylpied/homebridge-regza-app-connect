@@ -112,3 +112,19 @@ test('TV mode still requires the response body to be zero', async () => {
 
   await assert.rejects(client.sendKey('powerOn'), /did not execute/);
 });
+
+test('TV transport keys use REGZA rewind and fast-forward codes', async () => {
+  const client = createClient();
+  const paths = [];
+  client.requestWithDigest = async path => {
+    paths.push(path);
+    return { statusCode: 200, statusMessage: 'OK', headers: {}, body: '0' };
+  };
+
+  await client.sendKey('rewind');
+  await client.sendKey('fastForward');
+  assert.deepEqual(paths, [
+    '/remote/remote.htm?key=40BE2C',
+    '/remote/remote.htm?key=40BE2E',
+  ]);
+});

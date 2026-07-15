@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.8.0
+# homebridge-regza-app-connect v0.8.1
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
@@ -249,7 +249,7 @@ Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation m
 ## Install locally
 
 ```bash
-sudo npm install -g /path/to/homebridge-regza-app-connect-0.8.0.tgz
+sudo npm install -g /path/to/homebridge-regza-app-connect-0.8.1.tgz
 ```
 
 Then restart Homebridge.

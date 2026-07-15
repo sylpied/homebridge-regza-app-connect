@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1
+
+- Added HomeKit `REWIND` and `FAST_FORWARD` remote-key handling.
+- Mapped TV rewind/fast-forward to `40BE2C`/`40BE2E`.
+- Mapped DBR-M590 rewind/fast-forward to its recorder-specific `9a`/`98` codes.
+- Added regression coverage for both model mappings.
+
 ## 0.8.0
 
 - Added a verified Toshiba DBR-M590 recorder profile using HTTP port 80 and Digest authentication.
