@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.8.1
+# homebridge-regza-app-connect
 
 REGZA App Connect / TV Web Interface を使って、HomeKit から REGZA を操作する Homebridge Dynamic Platform Plugin です。
 
