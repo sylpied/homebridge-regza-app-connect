@@ -35,6 +35,7 @@ export interface RegzaDeviceConfig {
   powerToggleKey?: string;
   remoteResponseMode?: RemoteResponseMode;
   supportsV2Status?: boolean;
+  supportsSsdpRendererStatus?: boolean;
   supportsVolumeControl?: boolean;
   /** @deprecated Use powerToggleKey instead. Kept for v0.1.x config compatibility. */
   powerKey?: string;

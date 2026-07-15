@@ -8,6 +8,18 @@ DBR-M590 does not expose the TV v2 API, but provides this Digest-authenticated r
 GET /remote/remote.htm?key=<recorder short code>
 ```
 
+### DBR-M590 power-state investigation
+
+Physical-device ON/OFF comparisons produced identical responses through all of the following paths:
+
+- The 655-byte TCP port 1048 status payload
+- All nine SSDP-advertised MediaServer services
+- Nine zero-input, read-only UPnP SOAP actions
+
+The SOAP captures were both 10,767 bytes and had identical SHA-256 hashes. `GetSystemUpdateID` remained `40487`, `GetCurrentConnectionIDs` remained `0`, and Time Shift settings, recording destinations, and FriendlyName were also unchanged. The recorder's DLNA/network server therefore appears to stay active independently of its front-panel power state.
+
+DBR-M590 power is consequently managed optimistically for now. No read-only API that reliably detects power changes made through the physical remote has been verified.
+
 Success returns HTTP 200 with a blank HTML page. Unlike the TV API it does not return body `0`, so success validation is selected by model profile.
 
 English | [日本語](PROTOCOL.ja.md)
@@ -78,7 +90,7 @@ Verified `play/status` values on 55J10X:
 | Terrestrial / BS / CS | `broadcast` |
 | HDMI | `external` |
 
-Important: 55J10X can retain `external` after entering standby from HDMI, so `external` cannot confirm ON by itself. The plugin can use a reversible mute probe when required: read mute, send `40BF10`, read mute again, and restore the original value when it changed.
+Important: 55J10X can retain `external` after entering standby from HDMI, so `external` cannot confirm ON by itself. Physical-device testing found that SSDP `urn:schemas-upnp-org:device:MediaRenderer:1` responds while terrestrial, BS, CS, or HDMI is active and disappears in standby. The plugin sends a targeted query and confirms OFF after three consecutive misses. MediaServer is ignored because it can remain available in standby.
 
 ## Models without editable credentials
 

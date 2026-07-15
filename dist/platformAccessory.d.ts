@@ -8,6 +8,7 @@ export declare function isPlaybackDefinitelyActive(status: number, contentType: 
 export declare function getStatusPollDelayMs(intervalSeconds: number, consecutiveFailures: number): number;
 export declare function isConnectivityFailure(error: unknown): boolean;
 export declare function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures: number): boolean;
+export declare function shouldConfirmOffAfterSsdpMisses(consecutiveMisses: number): boolean;
 export declare function getRecorderPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
 export declare function getPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
 export declare function shouldAutoCloseNavigationMenu(deviceType: RegzaDeviceConfig['deviceType']): boolean;
@@ -30,6 +31,7 @@ export declare class RegzaTvAccessory {
     private powerStateConfirmedAt;
     private lastUserOperationAt;
     private statusPollFailureCount;
+    private ssdpRendererMissCount;
     private statusPollRunning?;
     private statusPollTimer?;
     private navigationModeActive;

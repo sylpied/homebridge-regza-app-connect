@@ -34,6 +34,7 @@ export const MODEL_PROFILES: Record<string, Partial<RegzaDeviceConfig>> = {
     contextualRemoteArrows: true,
     remoteResponseMode: 'zero',
     supportsV2Status: true,
+    supportsSsdpRendererStatus: true,
     supportsVolumeControl: true,
   },
   [MODEL_DBR_M590]: {

@@ -229,13 +229,19 @@
               "default": 120,
               "minimum": 120,
               "maximum": 3600,
-              "description": "Low-load power/input polling interval. Only playback status is polled; failures use progressive backoff up to 10 minutes. The runtime minimum is 120 seconds."
+              "description": "Low-load power/input polling interval. 55J10X first uses one targeted SSDP MediaRenderer query, then reads playback status only while ON. The runtime minimum is 120 seconds."
+            },
+            "supportsSsdpRendererStatus": {
+              "title": "Use SSDP MediaRenderer Power Detection",
+              "type": "boolean",
+              "default": false,
+              "description": "Verified on 55J10X. MediaRenderer is advertised while ON, including HDMI, and disappears in standby. Disable for unverified custom models."
             },
             "enableMutePowerProbe": {
               "title": "Enable Mute-based Power Probe",
               "type": "boolean",
               "default": true,
-              "description": "Legacy master switch. Keep enabled and select the behavior with Power Probe Mode."
+              "description": "Legacy master switch for the mute-based fallback used by models without SSDP MediaRenderer detection."
             },
             "powerProbeMode": {
               "title": "Power Probe Mode",
@@ -246,7 +252,7 @@
                 { "title": "Periodic mute probe", "enum": ["interval"] },
                 { "title": "Optimistic / Never probe", "enum": ["optimistic"] }
               ],
-              "description": "Operation-linked mode avoids frequent mute probes. It sends discrete Power ON before supported operations after a short idle period and runs one mute probe after a configurable long idle period."
+              "description": "Operation-linked mode sends discrete Power ON before supported operations after a short idle period. On 55J10X, power checks use non-disruptive SSDP; unverified models can fall back to a reversible mute probe."
             },
             "powerProbeInterval": {
               "title": "Power Probe Interval Seconds",
@@ -270,7 +276,7 @@
               "default": 8,
               "minimum": 0.25,
               "maximum": 168,
-              "description": "After this many hours without a user operation, run one reversible mute probe and update HomeKit. This detects power OFF performed with another remote."
+              "description": "After this many hours without a user operation, recheck power and update HomeKit. 55J10X uses SSDP without changing audio; other models may use the reversible mute fallback."
             },
             "operationCommandDelayMs": {
               "title": "Operation Command Delay Milliseconds",

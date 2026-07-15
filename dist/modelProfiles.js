@@ -33,6 +33,7 @@ exports.MODEL_PROFILES = {
         contextualRemoteArrows: true,
         remoteResponseMode: 'zero',
         supportsV2Status: true,
+        supportsSsdpRendererStatus: true,
         supportsVolumeControl: true,
     },
     [exports.MODEL_DBR_M590]: {

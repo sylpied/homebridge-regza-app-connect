@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.2
+
+- Added non-disruptive 55J10X power detection using targeted SSDP MediaRenderer discovery.
+- Confirmed OFF only after three consecutive MediaRenderer misses to tolerate transient UDP loss.
+- Avoided repeated HTTPS status connections while the TV is off; playback status is requested only after SSDP confirms ON.
+- Kept standby MediaServer advertisements out of power-state decisions.
+- Added Toshiba/SSDP/UPnP diagnostic scripts, including DBR service/action enumeration.
+- Documented that DBR-M590 TCP 1048, SSDP, and read-only UPnP SOAP results are identical in ON and OFF states, so recorder power remains optimistic.
+
 ## 0.8.1
 
 - Added HomeKit `REWIND` and `FAST_FORWARD` remote-key handling.

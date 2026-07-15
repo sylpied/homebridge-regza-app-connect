@@ -55,7 +55,7 @@ Apple Home Remote does not expose multiple Television services inside one HomeKi
 - When a REGZA TV is configured too, DBR volume/mute controls are forwarded to the first REGZA TV
 - Standalone (`external`) HomeKit publication is recommended
 
-Power state is optimistic. Power changes made through the physical remote or another control path may not be reflected in HomeKit.
+Power state is optimistic. Power changes made through the physical remote or another control path may not be reflected in HomeKit. ON/OFF captures from TCP 1048, SSDP, and read-only UPnP SOAP were completely identical because the network/DLNA server remains active in standby. See the [protocol notes](docs/PROTOCOL.md) for the measured results.
 
 ## Verified behavior on REGZA 55J10X
 
@@ -186,29 +186,26 @@ Existing v0.1.x configurations that only define `powerKey` keep their original t
 
 ## Power state
 
-The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`. Playback status with `status=0` and `broadcast` reliably reports ON. Because 55J10X can retain `external` after entering standby from HDMI, `external` never confirms ON by itself; the ambiguous state can use a verified mute-state probe when required:
+The HomeKit power state is updated immediately after REGZA returns HTTP `200 OK` with body `0`. On 55J10X the plugin also sends a targeted SSDP query for `urn:schemas-upnp-org:device:MediaRenderer:1`. Physical-device testing shows that MediaRenderer responds while terrestrial, BS, CS, or HDMI is active and disappears in standby. OFF is confirmed only after three consecutive misses to tolerate transient UDP loss.
 
-1. Read the current mute state.
-2. Send mute (`40BF10`).
-3. Read mute again.
-4. An unchanged value means standby; a changed value means ON.
-5. When changed, send mute again and verify the original state was restored.
+MediaServer is deliberately ignored because it can remain available in standby. SSDP does not alter video or audio, so the verified 55J10X profile no longer needs a mute probe. Unverified custom models can retain the reversible mute probe as a fallback.
 
 Verified 55J10X playback states:
 
 | TV state/input | `content_type` | HomeKit state |
 |---|---|---|
-| Standby after broadcast | `other` | Confirmed by mute probe |
+| Standby after broadcast | `other` | OFF after three MediaRenderer misses |
 | Terrestrial / BS / CS | `broadcast` | ON |
-| HDMI or standby after HDMI | `external` | Distinguished by mute probe when required |
+| HDMI | `external` | ON when MediaRenderer responds |
+| Standby after HDMI | May retain `external` | OFF after three MediaRenderer misses |
 
-Normal periodic polling uses only `GET /v2/remote/play/status` every 120 seconds by default to reduce network load. Overlapping polls are suppressed, and failures progressively back off up to 10 minutes. Legacy values below 120 seconds are raised to 120 seconds at runtime. Mute status is no longer included in normal polling; it is queried only for HomeKit Mute operations or when a power probe is required.
+Normal polling runs every 120 seconds by default. On 55J10X it first sends one targeted MediaRenderer SSDP query and reads `GET /v2/remote/play/status` only after an ON response. This avoids repeated port 4430 connections and timeouts while the TV is off. Legacy intervals below 120 seconds are raised to 120 seconds at runtime.
 
-Playback status reporting `broadcast` for terrestrial, BS, or CS positively identifies the TV as ON and updates HomeKit. HDMI `external` and an unreachable TV API retain the last confirmed state to avoid a false power-state change.
+A MediaRenderer response identifies the TV as ON, including HDMI. Playback status then updates HomeKit input selection: `broadcast` identifies terrestrial/BS/CS and `external` identifies HDMI.
 
 In the default `operation` mode, terrestrial, BS, CS, volume, and Mute operations are prefixed with the discrete Power ON key when 30 seconds have passed since the previous user operation. The discrete key cannot turn an already-active TV off, so an operation can wake a TV that was switched off with another remote while HDMI was selected. Configure the threshold with `operationPowerOnThresholdSeconds`.
 
-After eight hours without a user operation, the plugin runs one reversible mute probe and updates HomeKit. This detects an OFF state set by another remote without causing frequent periodic audio interruptions. Configure the duration with `stalePowerProbeHours` and the minimum command spacing with `operationCommandDelayMs` (250 ms by default). Select `interval` only when more frequent HDMI/standby correction matters more than uninterrupted viewing, or `optimistic` to disable mute probing completely. Built-in application states have not yet been fully verified.
+After eight hours without a user operation, the plugin also rechecks power over SSDP. This causes no mute overlay or audio interruption. Configure the duration with `stalePowerProbeHours`. Only custom models without SSDP detection use the older mute-probe settings.
 
 See the [REGZA remote-key reference](docs/REMOTE_KEYS.md) for verified and community-provided unverified codes.
 
@@ -218,6 +215,30 @@ Compatible TVs may publish their supported v2 commands at:
 
 ```text
 https://TV_IP:4430/v2/remote/support
+```
+
+The bundled diagnostic script lists SSDP responses:
+
+```bash
+node scripts/probe-ssdp.mjs 5000
+```
+
+For a DBR or another UPnP MediaServer, provide only its IP address to enumerate device/service definitions, actions, and power-state candidates:
+
+```bash
+node scripts/probe-upnp-actions.mjs 192.168.1.151 5000
+```
+
+If discovery does not respond, pass the description URL observed in the SSDP log directly (the port can vary):
+
+```bash
+node scripts/probe-upnp-actions.mjs http://192.168.1.151:55247/dms/
+```
+
+The following command invokes only zero-input, read-only SOAP actions and prints their response bodies and comparison SHA-256 values:
+
+```bash
+node scripts/probe-upnp-read-state.mjs http://192.168.1.151:55247/dms/
 ```
 
 See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) ([日本語](docs/PROTOCOL.ja.md)) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
