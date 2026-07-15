@@ -1,4 +1,4 @@
-# homebridge-regza-app-connect v0.8.1
+# homebridge-regza-app-connect
 
 Homebridge dynamic platform plugin for Toshiba/TVS REGZA TVs using REGZA App Connect / TV Web Interface.
 
