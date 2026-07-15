@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3
+
+- Added TV, CL, AV, and combined Toshiba device-discovery profiles to the diagnostic probe script.
+- Documented physical DBR-M590 OFF/ON discovery captures and the RZ Program Guide implementation.
+- Confirmed that DBR-M590 keeps responding to AV discovery in standby, so discovery is not used as power-state evidence.
+
 ## 0.8.2
 
 - Display the next-active HDMI command as the concise `HDMI` input name in HomeKit and migrate older labels automatically.

@@ -13,12 +13,21 @@ GET /remote/remote.htm?key=<レコーダー用短縮コード>
 電源ON/OFFで次の経路を実機比較しましたが、いずれも同一の応答でした。
 
 - TCP 1048の655バイト状態データ
+- UDP 137のAV機器探索（`0x10` / `TOSHIBACORPORATIONNETAVEQUIPMENT`）
 - SSDPで公開される9種類のMediaServerサービス
 - UPnPの引数なし読み取り専用SOAPアクション9件
 
 SOAP応答はファイルサイズ10,767バイトとSHA-256が完全一致しました。`GetSystemUpdateID`は`40487`、`GetCurrentConnectionIDs`は`0`で変化せず、`X_Toshiba_GetTimeShiftSetting`、録画先、FriendlyNameなども同一です。DBRのDLNA/ネットdeナビ系サーバーは本体の表示上の電源状態とは独立して待機中も稼働していると考えられます。
 
 このため、現時点でDBR-M590のHomeKit電源状態は楽観的に管理します。純正リモコンなど別経路の電源操作を確実に検出できる読み取り専用APIは確認できていません。
+
+RZ番組ナビ1.6.3の実装も確認しました。同アプリはDBRの状態表示にTCP 1048を使用しますが、電源ボタンはこの状態データからON/OFFを判定せず、電源トグルキーを送信します。機器探索ではTV用の`0x30`、CL用の`0x20`、AV機器用の`0x10`を使い分けます。DBR-M590はAV探索へ応答しましたが、実機のOFF/ON比較ではトランザクションID以外の応答内容が一致しました。待機中も探索応答を返すため、探索結果も電源状態には利用できません。
+
+探索の確認には次のスクリプトを使用できます。最後の引数は`tv`、`cl`、`av`、`all`から選択します。
+
+```bash
+node scripts/probe-toshiba-device.mjs 192.168.100.255 6000 av
+```
 
 成功時はHTTP 200と空のHTMLページを返します。TVのような本文`0`は返さないため、モデルプロファイルごとに成功判定を分けます。
 
