@@ -121,9 +121,11 @@ test('legacy HDMI labels migrate to a HomeKit-safe name', () => {
   const migrated = migrateDefaultInputNames('55J10X', [
     { name: 'HDMI（次のアクティブ入力）', key: '40BF3A', identifier: 4 },
     { name: 'HDMI (Next Active)', key: '40BF3A', identifier: 5 },
+    { name: 'HDMI Next Active', key: '40BF3A', identifier: 6 },
   ]);
-  assert.equal(migrated[0].name, 'HDMI Next Active');
-  assert.equal(migrated[1].name, 'HDMI Next Active');
+  assert.equal(migrated[0].name, 'HDMI');
+  assert.equal(migrated[1].name, 'HDMI');
+  assert.equal(migrated[2].name, 'HDMI');
 });
 
 test('early DBR Select defaults migrate to Start Menu-first behavior', () => {
