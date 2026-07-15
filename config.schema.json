@@ -348,7 +348,7 @@
                   "identifier": 3
                 },
                 {
-                  "name": "HDMI Next Active",
+                  "name": "HDMI",
                   "key": "40BF3A",
                   "identifier": 4
                 }
@@ -364,7 +364,7 @@
                   "name": {
                     "title": "Display Name",
                     "type": "string",
-                    "default": "HDMI Next Active"
+                    "default": "HDMI"
                   },
                   "key": {
                     "title": "REGZA Remote Key",

@@ -2,6 +2,7 @@
 
 ## 0.8.2
 
+- Display the next-active HDMI command as the concise `HDMI` input name in HomeKit and migrate older labels automatically.
 - Added non-disruptive 55J10X power detection using targeted SSDP MediaRenderer discovery.
 - Confirmed OFF only after three consecutive MediaRenderer misses to tolerate transient UDP loss.
 - Avoided repeated HTTPS status connections while the TV is off; playback status is requested only after SSDP confirms ON.

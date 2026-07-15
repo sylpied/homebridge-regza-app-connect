@@ -3,7 +3,7 @@
     { name: '地デジ', key: '40BF7A', identifier: 1 },
     { name: 'BS', key: '40BF7C', identifier: 2 },
     { name: 'CS', key: '40BF7D', identifier: 3 },
-    { name: 'HDMI Next Active', key: '40BF3A', identifier: 4 },
+    { name: 'HDMI', key: '40BF3A', identifier: 4 },
   ];
   const newDevice = () => ({
     name: 'REGZA 55J10X', ip: '', model: '55J10X', deviceType: 'tv', publishMode: 'external', mac: '', username: '', password: '',
@@ -152,8 +152,8 @@
   const migrateDefaultInputs = (device) => {
     if (device.model !== '55J10X' || !Array.isArray(device.inputs)) return;
     device.inputs = device.inputs.map((item, index) => {
-      if (/^HDMI(?:（次のアクティブ入力）|\s*\(Next Active\))$/i.test(String(item.name || '').trim())) {
-        return { ...item, name: 'HDMI Next Active' };
+      if (/^HDMI(?:\s+Next Active|（次のアクティブ入力）|\s*\(Next Active\))$/i.test(String(item.name || '').trim())) {
+        return { ...item, name: 'HDMI' };
       }
       if (!/^(?:Input Source|入力ソース)\s*\d+$/i.test(String(item.name || '').trim())) return item;
       const replacement = defaultInputs[index];

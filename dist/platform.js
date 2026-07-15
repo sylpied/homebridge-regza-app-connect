@@ -36,8 +36,8 @@ function migrateDefaultInputNames(model, inputs) {
         return inputs;
     }
     return inputs.map((input, index) => {
-        if (/^HDMI(?:（次のアクティブ入力）|\s*\(Next Active\))$/i.test(input.name.trim())) {
-            return { ...input, name: 'HDMI Next Active' };
+        if (/^HDMI(?:\s+Next Active|（次のアクティブ入力）|\s*\(Next Active\))$/i.test(input.name.trim())) {
+            return { ...input, name: 'HDMI' };
         }
         if (!/^(?:Input Source|入力ソース)\s*\d+$/i.test(input.name.trim())) {
             return input;
