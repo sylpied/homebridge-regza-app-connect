@@ -8,6 +8,18 @@ DBR-M590はTV用v2 APIを公開しませんが、HTTP 80番ポートでDigest認
 GET /remote/remote.htm?key=<レコーダー用短縮コード>
 ```
 
+### DBR-M590の電源状態調査
+
+電源ON/OFFで次の経路を実機比較しましたが、いずれも同一の応答でした。
+
+- TCP 1048の655バイト状態データ
+- SSDPで公開される9種類のMediaServerサービス
+- UPnPの引数なし読み取り専用SOAPアクション9件
+
+SOAP応答はファイルサイズ10,767バイトとSHA-256が完全一致しました。`GetSystemUpdateID`は`40487`、`GetCurrentConnectionIDs`は`0`で変化せず、`X_Toshiba_GetTimeShiftSetting`、録画先、FriendlyNameなども同一です。DBRのDLNA/ネットdeナビ系サーバーは本体の表示上の電源状態とは独立して待機中も稼働していると考えられます。
+
+このため、現時点でDBR-M590のHomeKit電源状態は楽観的に管理します。純正リモコンなど別経路の電源操作を確実に検出できる読み取り専用APIは確認できていません。
+
 成功時はHTTP 200と空のHTMLページを返します。TVのような本文`0`は返さないため、モデルプロファイルごとに成功判定を分けます。
 
 [English](PROTOCOL.md) | 日本語
@@ -78,7 +90,7 @@ GET /v2/remote/settings/channel_list
 | 地デジ／BS／CS | `broadcast` |
 | HDMI | `external` |
 
-重要：55J10XはHDMI表示からスタンバイへ移行した後も`external`を保持することがあります。そのため`external`はON確定に使えません。本プラグインでは必要に応じて可逆的な消音プローブで判定します。現在の消音状態を取得し、`40BF10`を送信して再度状態を取得します。状態が変化した場合はテレビがONと判断し、もう一度`40BF10`を送って元の消音状態へ復元します。
+重要：55J10XはHDMI表示からスタンバイへ移行した後も`external`を保持することがあります。そのため`external`単独ではONを確定できません。実機調査では、SSDPの`urn:schemas-upnp-org:device:MediaRenderer:1`が地デジ・BS・CS・HDMIのON中に応答し、スタンバイでは消失しました。本プラグインはMediaRenderer限定の問い合わせを使い、3回連続未応答でOFFを確定します。待機中も残る場合があるMediaServerは判定に使いません。
 
 ## ユーザー名・パスワードを設定できない機種
 

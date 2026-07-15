@@ -3,6 +3,7 @@ import wol from 'wake_on_lan';
 import { DEFAULT_INPUTS, RegzaDeviceConfig, RegzaInputConfig } from './settings';
 import { RegzaClient } from './regzaClient';
 import { RemoteKeys } from './remoteKeys';
+import { probeMediaRenderer } from './ssdpPowerProbe';
 import type { RegzaPlatform } from './platform';
 
 export function shouldPrepareOperationWake(
@@ -67,6 +68,10 @@ export function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures: n
   return consecutiveFailures >= 3;
 }
 
+export function shouldConfirmOffAfterSsdpMisses(consecutiveMisses: number): boolean {
+  return consecutiveMisses >= 3;
+}
+
 export function getRecorderPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause' {
   return currentlyPaused ? 'play' : 'pause';
 }
@@ -106,6 +111,7 @@ export class RegzaTvAccessory {
   private powerStateConfirmedAt = 0;
   private lastUserOperationAt = 0;
   private statusPollFailureCount = 0;
+  private ssdpRendererMissCount = 0;
   private statusPollRunning?: Promise<boolean>;
   private statusPollTimer?: NodeJS.Timeout;
   private navigationModeActive = false;
@@ -633,6 +639,35 @@ export class RegzaTvAccessory {
 
     this.powerProbeRunning = true;
     try {
+      if (this.device.supportsSsdpRendererStatus === true) {
+        const detectedActive = await probeMediaRenderer(this.device.ip);
+        if (detectedActive) {
+          this.ssdpRendererMissCount = 0;
+          const changed = !this.active;
+          this.updatePowerState(true, true);
+          if (changed) {
+            this.platform.log.info(`REGZA SSDP power probe: ${this.device.name} is ON.`);
+          }
+          this.powerProbeFailureCount = 0;
+          this.powerProbeConnectivityFailureCount = 0;
+          return true;
+        }
+
+        this.ssdpRendererMissCount += 1;
+        if (shouldConfirmOffAfterSsdpMisses(this.ssdpRendererMissCount)) {
+          const changed = this.active;
+          this.updatePowerState(false, true);
+          if (changed) {
+            this.platform.log.info(
+              `REGZA SSDP power probe: ${this.device.name} is OFF after ` +
+              `${this.ssdpRendererMissCount} consecutive MediaRenderer misses.`,
+            );
+          }
+          return true;
+        }
+        return false;
+      }
+
       const playback = await this.client.getPlaybackStatus();
       const detectedActive = isPlaybackDefinitelyActive(playback.status, playback.content_type)
         ? true
@@ -705,6 +740,28 @@ export class RegzaTvAccessory {
 
   private async pollStatusOnce(): Promise<boolean> {
     try {
+      if (this.device.supportsSsdpRendererStatus === true) {
+        const rendererActive = await probeMediaRenderer(this.device.ip);
+        if (!rendererActive) {
+          this.ssdpRendererMissCount += 1;
+          if (shouldConfirmOffAfterSsdpMisses(this.ssdpRendererMissCount)) {
+            const changed = this.active;
+            this.updatePowerState(false, true);
+            if (changed) {
+              this.platform.log.info(
+                `REGZA SSDP status: ${this.device.name} is OFF after ` +
+                `${this.ssdpRendererMissCount} consecutive MediaRenderer misses.`,
+              );
+            }
+          }
+          this.statusPollFailureCount = 0;
+          return true;
+        }
+
+        this.ssdpRendererMissCount = 0;
+        this.updatePowerState(true, true);
+      }
+
       const playback = await this.client.getPlaybackStatus();
       if (playback.status === 0) {
         if (playback.content_type === 'external') {
@@ -799,6 +856,9 @@ export class RegzaTvAccessory {
 
   private updatePowerState(active: boolean, confirmed: boolean): void {
     this.active = active;
+    if (active) {
+      this.ssdpRendererMissCount = 0;
+    }
     this.accessory.context.active = active;
     if (confirmed) {
       this.powerStateConfirmedAt = Date.now();

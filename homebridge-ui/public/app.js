@@ -10,7 +10,7 @@
     protocol: 'https', port: 4430, allowSelfSignedCertificate: true,
     powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12',
     enableWakeOnLan: false, wakeOnLanAddress: '255.255.255.255', wakeOnLanPort: 2304,
-    powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 120,
+    powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 120, supportsSsdpRendererStatus: true,
     enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60,
     operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst',
     navigationTimeoutSeconds: 60, navigationPostSelectResetSeconds: 15,
@@ -54,6 +54,7 @@
       ${check(`${p}-selfsigned`, t('selfSigned'), device.allowSelfSignedCertificate !== false, t('selfSignedHelp'))}
       ${input(`${p}-timeout`, t('requestTimeout'), device.requestTimeoutMs, 'number', 'min="1000" max="60000"')}
       ${input(`${p}-polling`, t('polling'), device.pollingInterval, 'number', 'min="120" max="3600"')}
+      ${check(`${p}-ssdp-renderer`, t('ssdpRenderer'), device.supportsSsdpRendererStatus === true, t('ssdpRendererHelp'))}
     </div>`;
     const power = `<div class="regza-grid">
       ${select(`${p}-power-mode`, t('powerMode'), device.powerMode || 'discrete', [['discrete', t('discrete')], ['toggle', t('toggle')]])}
@@ -104,7 +105,7 @@
     const p = `d${index}`;
     [['name','name'],['model','model'],['device-type','deviceType'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['publish-mode','publishMode'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
     [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['operation-wake','operationPowerOnThresholdSeconds'],['stale-probe','stalePowerProbeHours'],['command-delay','operationCommandDelayMs'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
-    [['selfsigned','allowSelfSignedCertificate'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
+    [['selfsigned','allowSelfSignedCertificate'],['ssdp-renderer','supportsSsdpRendererStatus'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
     ['power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
     byId(`${p}-model`)?.addEventListener('change', () => {
       if (device.model === '55J10X') {
@@ -128,11 +129,11 @@
     renderInputs(device, index);
     updateConditional(device, index);
   };
-  const applyJ10x = (d) => Object.assign(d, { deviceType: 'tv', publishMode: 'external', protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst', contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })) });
+  const applyJ10x = (d) => Object.assign(d, { deviceType: 'tv', publishMode: 'external', protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, supportsSsdpRendererStatus: true, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst', contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })) });
   const applyDbrM590 = (d) => Object.assign(d, {
     deviceType: 'recorder', publishMode: 'external', protocol: 'http', port: 80, allowSelfSignedCertificate: false,
     powerMode: 'toggle', powerToggleKey: '12', enableWakeOnLan: false,
-    enableMutePowerProbe: false, powerProbeMode: 'optimistic',
+    supportsSsdpRendererStatus: false, enableMutePowerProbe: false, powerProbeMode: 'optimistic',
     selectKeyMode: 'menuFirst', contextualRemoteArrows: false,
     keyMap: {
       power: '12', powerToggle: '12', channelUp: '1e', channelDown: '1f',
@@ -212,6 +213,7 @@
         applyDbrM590(device);
       } else if (device.model === '55J10X') {
         device.publishMode = 'external';
+        if (device.supportsSsdpRendererStatus === undefined) device.supportsSsdpRendererStatus = true;
         migrateDefaultInputs(device);
       }
       if (!device.powerProbeMode) device.powerProbeMode = device.enableMutePowerProbe === false ? 'optimistic' : 'operation';

@@ -12,6 +12,7 @@ const {
   isConnectivityFailure,
   isPlaybackDefinitelyActive,
   shouldConfirmOffAfterConnectivityFailures,
+  shouldConfirmOffAfterSsdpMisses,
   shouldPrepareOperationWake,
   shouldAutoCloseNavigationMenu,
 } = require('../dist/platformAccessory');
@@ -35,6 +36,13 @@ test('power state is confirmed OFF only after three consecutive connectivity fai
   assert.equal(shouldConfirmOffAfterConnectivityFailures(2), false);
   assert.equal(shouldConfirmOffAfterConnectivityFailures(3), true);
   assert.equal(shouldConfirmOffAfterConnectivityFailures(4), true);
+});
+
+test('SSDP power state is confirmed OFF only after three consecutive renderer misses', () => {
+  assert.equal(shouldConfirmOffAfterSsdpMisses(1), false);
+  assert.equal(shouldConfirmOffAfterSsdpMisses(2), false);
+  assert.equal(shouldConfirmOffAfterSsdpMisses(3), true);
+  assert.equal(shouldConfirmOffAfterSsdpMisses(4), true);
 });
 
 test('device identity is stable across display-name and MAC letter-case changes', () => {

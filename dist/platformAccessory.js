@@ -11,6 +11,7 @@ exports.isPlaybackDefinitelyActive = isPlaybackDefinitelyActive;
 exports.getStatusPollDelayMs = getStatusPollDelayMs;
 exports.isConnectivityFailure = isConnectivityFailure;
 exports.shouldConfirmOffAfterConnectivityFailures = shouldConfirmOffAfterConnectivityFailures;
+exports.shouldConfirmOffAfterSsdpMisses = shouldConfirmOffAfterSsdpMisses;
 exports.getRecorderPlayPauseKey = getRecorderPlayPauseKey;
 exports.getPlayPauseKey = getPlayPauseKey;
 exports.shouldAutoCloseNavigationMenu = shouldAutoCloseNavigationMenu;
@@ -19,6 +20,7 @@ const wake_on_lan_1 = __importDefault(require("wake_on_lan"));
 const settings_1 = require("./settings");
 const regzaClient_1 = require("./regzaClient");
 const remoteKeys_1 = require("./remoteKeys");
+const ssdpPowerProbe_1 = require("./ssdpPowerProbe");
 function shouldPrepareOperationWake(powerMode, idleMs, thresholdMs) {
     return powerMode === 'discrete' && idleMs >= thresholdMs;
 }
@@ -69,6 +71,9 @@ function isConnectivityFailure(error) {
 function shouldConfirmOffAfterConnectivityFailures(consecutiveFailures) {
     return consecutiveFailures >= 3;
 }
+function shouldConfirmOffAfterSsdpMisses(consecutiveMisses) {
+    return consecutiveMisses >= 3;
+}
 function getRecorderPlayPauseKey(currentlyPaused) {
     return currentlyPaused ? 'play' : 'pause';
 }
@@ -101,6 +106,7 @@ class RegzaTvAccessory {
     powerStateConfirmedAt = 0;
     lastUserOperationAt = 0;
     statusPollFailureCount = 0;
+    ssdpRendererMissCount = 0;
     statusPollRunning;
     statusPollTimer;
     navigationModeActive = false;
@@ -568,6 +574,31 @@ class RegzaTvAccessory {
         }
         this.powerProbeRunning = true;
         try {
+            if (this.device.supportsSsdpRendererStatus === true) {
+                const detectedActive = await (0, ssdpPowerProbe_1.probeMediaRenderer)(this.device.ip);
+                if (detectedActive) {
+                    this.ssdpRendererMissCount = 0;
+                    const changed = !this.active;
+                    this.updatePowerState(true, true);
+                    if (changed) {
+                        this.platform.log.info(`REGZA SSDP power probe: ${this.device.name} is ON.`);
+                    }
+                    this.powerProbeFailureCount = 0;
+                    this.powerProbeConnectivityFailureCount = 0;
+                    return true;
+                }
+                this.ssdpRendererMissCount += 1;
+                if (shouldConfirmOffAfterSsdpMisses(this.ssdpRendererMissCount)) {
+                    const changed = this.active;
+                    this.updatePowerState(false, true);
+                    if (changed) {
+                        this.platform.log.info(`REGZA SSDP power probe: ${this.device.name} is OFF after ` +
+                            `${this.ssdpRendererMissCount} consecutive MediaRenderer misses.`);
+                    }
+                    return true;
+                }
+                return false;
+            }
             const playback = await this.client.getPlaybackStatus();
             const detectedActive = isPlaybackDefinitelyActive(playback.status, playback.content_type)
                 ? true
@@ -632,6 +663,24 @@ class RegzaTvAccessory {
     }
     async pollStatusOnce() {
         try {
+            if (this.device.supportsSsdpRendererStatus === true) {
+                const rendererActive = await (0, ssdpPowerProbe_1.probeMediaRenderer)(this.device.ip);
+                if (!rendererActive) {
+                    this.ssdpRendererMissCount += 1;
+                    if (shouldConfirmOffAfterSsdpMisses(this.ssdpRendererMissCount)) {
+                        const changed = this.active;
+                        this.updatePowerState(false, true);
+                        if (changed) {
+                            this.platform.log.info(`REGZA SSDP status: ${this.device.name} is OFF after ` +
+                                `${this.ssdpRendererMissCount} consecutive MediaRenderer misses.`);
+                        }
+                    }
+                    this.statusPollFailureCount = 0;
+                    return true;
+                }
+                this.ssdpRendererMissCount = 0;
+                this.updatePowerState(true, true);
+            }
             const playback = await this.client.getPlaybackStatus();
             if (playback.status === 0) {
                 if (playback.content_type === 'external') {
@@ -718,6 +767,9 @@ class RegzaTvAccessory {
     }
     updatePowerState(active, confirmed) {
         this.active = active;
+        if (active) {
+            this.ssdpRendererMissCount = 0;
+        }
         this.accessory.context.active = active;
         if (confirmed) {
             this.powerStateConfirmedAt = Date.now();
