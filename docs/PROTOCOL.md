@@ -13,12 +13,21 @@ GET /remote/remote.htm?key=<recorder short code>
 Physical-device ON/OFF comparisons produced identical responses through all of the following paths:
 
 - The 655-byte TCP port 1048 status payload
+- UDP port 137 AV-device discovery (`0x10` / `TOSHIBACORPORATIONNETAVEQUIPMENT`)
 - All nine SSDP-advertised MediaServer services
 - Nine zero-input, read-only UPnP SOAP actions
 
 The SOAP captures were both 10,767 bytes and had identical SHA-256 hashes. `GetSystemUpdateID` remained `40487`, `GetCurrentConnectionIDs` remained `0`, and Time Shift settings, recording destinations, and FriendlyName were also unchanged. The recorder's DLNA/network server therefore appears to stay active independently of its front-panel power state.
 
 DBR-M590 power is consequently managed optimistically for now. No read-only API that reliably detects power changes made through the physical remote has been verified.
+
+The implementation in RZ Program Guide 1.6.3 was also inspected. It reads DBR display information over TCP port 1048, but its power button does not derive an ON/OFF state from that payload and instead sends the toggle key. Device discovery distinguishes TV (`0x30`), CL (`0x20`), and AV (`0x10`) profiles. DBR-M590 responded to the AV query, but physical-device OFF/ON captures were identical apart from the transaction ID. Discovery therefore remains available in standby and is not power-state evidence.
+
+The discovery profiles can be tested with the following script. Its final argument accepts `tv`, `cl`, `av`, or `all`.
+
+```bash
+node scripts/probe-toshiba-device.mjs 192.168.100.255 6000 av
+```
 
 Success returns HTTP 200 with a blank HTML page. Unlike the TV API it does not return body `0`, so success validation is selected by model profile.
 
