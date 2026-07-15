@@ -342,6 +342,12 @@ export class RegzaTvAccessory {
       );
     }
     switch (value) {
+      case this.platform.Characteristic.RemoteKey.REWIND:
+        await this.client.sendKey('rewind');
+        break;
+      case this.platform.Characteristic.RemoteKey.FAST_FORWARD:
+        await this.client.sendKey('fastForward');
+        break;
       case this.platform.Characteristic.RemoteKey.ARROW_UP:
         if (this.navigationModeActive || this.device.contextualRemoteArrows === false) {
           await this.client.sendKey('up');

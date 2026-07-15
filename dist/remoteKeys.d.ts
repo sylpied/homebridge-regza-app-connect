@@ -19,7 +19,9 @@ export declare const RemoteKeys: {
     readonly QUICK: "40BF27";
     readonly EXIT: "40BF3C";
     readonly BLUE: "40BF73";
+    readonly REWIND: "40BE2C";
     readonly PLAY: "40BE2D";
+    readonly FAST_FORWARD: "40BE2E";
     readonly PAUSE: "40BF50";
     readonly TERRESTRIAL: "40BF7A";
     readonly BS: "40BF7C";
