@@ -35,6 +35,17 @@ exports.MODEL_PROFILES = {
         supportsV2Status: true,
         supportsSsdpRendererStatus: true,
         supportsVolumeControl: true,
+        keyMap: {
+            powerOn: remoteKeys_1.RemoteKeys.POWER_ON, powerOff: remoteKeys_1.RemoteKeys.POWER_OFF, powerToggle: remoteKeys_1.RemoteKeys.POWER_TOGGLE,
+            mute: remoteKeys_1.RemoteKeys.MUTE, volumeUp: remoteKeys_1.RemoteKeys.VOLUME_UP, volumeDown: remoteKeys_1.RemoteKeys.VOLUME_DOWN,
+            channelUp: remoteKeys_1.RemoteKeys.CHANNEL_UP, channelDown: remoteKeys_1.RemoteKeys.CHANNEL_DOWN,
+            up: remoteKeys_1.RemoteKeys.UP, down: remoteKeys_1.RemoteKeys.DOWN, left: remoteKeys_1.RemoteKeys.LEFT, right: remoteKeys_1.RemoteKeys.RIGHT,
+            enter: remoteKeys_1.RemoteKeys.ENTER, return: remoteKeys_1.RemoteKeys.RETURN, exit: remoteKeys_1.RemoteKeys.EXIT, display: remoteKeys_1.RemoteKeys.DISPLAY,
+            guide: remoteKeys_1.RemoteKeys.GUIDE, menu: remoteKeys_1.RemoteKeys.MENU, quick: remoteKeys_1.RemoteKeys.QUICK, blue: remoteKeys_1.RemoteKeys.BLUE,
+            terrestrial: remoteKeys_1.RemoteKeys.TERRESTRIAL, bs: remoteKeys_1.RemoteKeys.BS, cs: remoteKeys_1.RemoteKeys.CS,
+            rewind: remoteKeys_1.RemoteKeys.REWIND, play: remoteKeys_1.RemoteKeys.PLAY, fastForward: remoteKeys_1.RemoteKeys.FAST_FORWARD,
+            pause: remoteKeys_1.RemoteKeys.PAUSE,
+        },
     },
     [exports.MODEL_DBR_M590]: {
         deviceType: 'recorder',
@@ -89,10 +100,9 @@ function applyModelProfile(device) {
     if (!profile) {
         return device;
     }
-    // Explicit user configuration wins over ordinary profile defaults. For a
-    // verified recorder profile, however, its remote map must win over stale TV
-    // mappings left by early builds. Use the custom model for a custom key map.
-    const keyMap = model === exports.MODEL_DBR_M590
+    // Verified profiles must win over stale mappings left by switching between
+    // TV and recorder models. Use the custom model for a custom key map.
+    const keyMap = model === exports.MODEL_DBR_M590 || model === exports.MODEL_55J10X
         ? { ...(device.keyMap ?? {}), ...(profile.keyMap ?? {}) }
         : { ...(profile.keyMap ?? {}), ...(device.keyMap ?? {}) };
     return {

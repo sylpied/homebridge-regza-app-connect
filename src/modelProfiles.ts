@@ -36,6 +36,17 @@ export const MODEL_PROFILES: Record<string, Partial<RegzaDeviceConfig>> = {
     supportsV2Status: true,
     supportsSsdpRendererStatus: true,
     supportsVolumeControl: true,
+    keyMap: {
+      powerOn: RemoteKeys.POWER_ON, powerOff: RemoteKeys.POWER_OFF, powerToggle: RemoteKeys.POWER_TOGGLE,
+      mute: RemoteKeys.MUTE, volumeUp: RemoteKeys.VOLUME_UP, volumeDown: RemoteKeys.VOLUME_DOWN,
+      channelUp: RemoteKeys.CHANNEL_UP, channelDown: RemoteKeys.CHANNEL_DOWN,
+      up: RemoteKeys.UP, down: RemoteKeys.DOWN, left: RemoteKeys.LEFT, right: RemoteKeys.RIGHT,
+      enter: RemoteKeys.ENTER, return: RemoteKeys.RETURN, exit: RemoteKeys.EXIT, display: RemoteKeys.DISPLAY,
+      guide: RemoteKeys.GUIDE, menu: RemoteKeys.MENU, quick: RemoteKeys.QUICK, blue: RemoteKeys.BLUE,
+      terrestrial: RemoteKeys.TERRESTRIAL, bs: RemoteKeys.BS, cs: RemoteKeys.CS,
+      rewind: RemoteKeys.REWIND, play: RemoteKeys.PLAY, fastForward: RemoteKeys.FAST_FORWARD,
+      pause: RemoteKeys.PAUSE,
+    },
   },
   [MODEL_DBR_M590]: {
     deviceType: 'recorder',
@@ -93,10 +104,9 @@ export function applyModelProfile(device: Partial<RegzaDeviceConfig>): Partial<R
     return device;
   }
 
-  // Explicit user configuration wins over ordinary profile defaults. For a
-  // verified recorder profile, however, its remote map must win over stale TV
-  // mappings left by early builds. Use the custom model for a custom key map.
-  const keyMap = model === MODEL_DBR_M590
+  // Verified profiles must win over stale mappings left by switching between
+  // TV and recorder models. Use the custom model for a custom key map.
+  const keyMap = model === MODEL_DBR_M590 || model === MODEL_55J10X
     ? { ...(device.keyMap ?? {}), ...(profile.keyMap ?? {}) }
     : { ...(profile.keyMap ?? {}), ...(device.keyMap ?? {}) };
   return {
