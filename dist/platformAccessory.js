@@ -15,6 +15,9 @@ exports.shouldConfirmOffAfterSsdpMisses = shouldConfirmOffAfterSsdpMisses;
 exports.getRecorderPlayPauseKey = getRecorderPlayPauseKey;
 exports.getPlayPauseKey = getPlayPauseKey;
 exports.shouldAutoCloseNavigationMenu = shouldAutoCloseNavigationMenu;
+exports.getRecorderPowerSteps = getRecorderPowerSteps;
+exports.shouldContinueRecorderOffNormalization = shouldContinueRecorderOffNormalization;
+exports.shouldSkipPowerRequest = shouldSkipPowerRequest;
 exports.getNavigationLayerAfterDateSelection = getNavigationLayerAfterDateSelection;
 const wake_on_lan_1 = __importDefault(require("wake_on_lan"));
 const settings_1 = require("./settings");
@@ -86,6 +89,25 @@ function shouldAutoCloseNavigationMenu(deviceType) {
     // the plugin's internal routing state.
     return deviceType !== 'recorder';
 }
+function getRecorderPowerSteps(shouldBeActive, powerOnLinkedTv, hasLinkedTv, normalizeOff) {
+    if (shouldBeActive) {
+        return [
+            'recorderMenu',
+            ...(powerOnLinkedTv && hasLinkedTv ? ['linkedTvOn'] : []),
+        ];
+    }
+    return normalizeOff
+        ? ['recorderMenu', 'delay', 'recorderToggle']
+        : ['recorderToggle'];
+}
+function shouldContinueRecorderOffNormalization(linkedTvIp, linkedTvActive) {
+    return linkedTvIp === undefined || linkedTvActive === false;
+}
+function shouldSkipPowerRequest(deviceType, requestedActive, currentActive) {
+    // A recorder state is optimistic. Always execute its convergence sequence,
+    // even when HomeKit already displays the requested state.
+    return deviceType !== 'recorder' && requestedActive === currentActive;
+}
 function getNavigationLayerAfterDateSelection(currentLayer) {
     return currentLayer === 'dateSelection' ? 'menu' : currentLayer;
 }
@@ -95,6 +117,10 @@ class RegzaTvAccessory {
     device;
     client;
     volumeClient;
+    linkedTvClient;
+    linkedTvIp;
+    recorderPowerOperation = Promise.resolve();
+    recorderPowerGeneration = 0;
     tvService;
     speakerService;
     active = false;
@@ -139,7 +165,7 @@ class RegzaTvAccessory {
             powerToggleKey: device.powerToggleKey ?? device.powerKey,
             remoteResponseMode: device.remoteResponseMode,
         });
-        this.volumeClient = volumeControlDevice
+        this.linkedTvClient = volumeControlDevice
             ? new regzaClient_1.RegzaClient({
                 log: platform.log,
                 name: volumeControlDevice.name,
@@ -158,7 +184,14 @@ class RegzaTvAccessory {
                 powerToggleKey: volumeControlDevice.powerToggleKey ?? volumeControlDevice.powerKey,
                 remoteResponseMode: volumeControlDevice.remoteResponseMode,
             })
-            : this.client;
+            : undefined;
+        this.volumeClient = this.linkedTvClient ?? this.client;
+        this.linkedTvIp = volumeControlDevice?.ip;
+        if (this.device.deviceType === 'recorder' &&
+            this.linkedTvIp &&
+            this.device.recorderPowerOffWithLinkedTv !== false) {
+            this.platform.registerLinkedRecorderPowerOff(this.linkedTvIp, this.device.recorderLinkedTvOffDelaySeconds ?? 5, () => this.setRecorderActive(false));
+        }
         this.platform.log.info(`Initializing REGZA accessory: ${device.name} (ip=${device.ip}, mac=${device.mac ? 'configured' : 'not configured'}, username=${device.username ? 'configured' : 'missing'}, password=${device.password ? 'configured' : 'missing'})`);
         this.accessory.getService(this.platform.Service.AccessoryInformation)
             ?.setCharacteristic(this.platform.Characteristic.Name, device.name)
@@ -261,7 +294,11 @@ class RegzaTvAccessory {
     }
     async setActive(value) {
         const shouldBeActive = value === this.platform.Characteristic.Active.ACTIVE;
-        if (shouldBeActive === this.active) {
+        if (shouldSkipPowerRequest(this.device.deviceType, shouldBeActive, this.active)) {
+            return;
+        }
+        if (this.device.deviceType === 'recorder') {
+            await this.setRecorderActive(shouldBeActive);
             return;
         }
         if (shouldBeActive && this.device.enableWakeOnLan === true && this.device.mac) {
@@ -275,6 +312,61 @@ class RegzaTvAccessory {
         }
         else {
             await this.client.powerOff();
+            this.endNavigationMode();
+        }
+        this.updatePowerState(shouldBeActive, true);
+        this.recordUserOperation();
+    }
+    setRecorderActive(shouldBeActive) {
+        const generation = ++this.recorderPowerGeneration;
+        const operation = this.recorderPowerOperation
+            .catch(() => undefined)
+            .then(() => this.runRecorderPowerOperation(shouldBeActive, generation));
+        this.recorderPowerOperation = operation;
+        return operation;
+    }
+    async runRecorderPowerOperation(shouldBeActive, generation) {
+        const linkedTvActive = this.linkedTvIp
+            ? this.platform.getDevicePowerState(this.linkedTvIp)
+            : undefined;
+        // Sending Start Menu while the linked TV is ON can switch HDMI input and
+        // interrupt viewing. Only use the wake-then-toggle OFF normalization when
+        // the linked TV is confirmed OFF, or when no TV is linked.
+        const normalizeOff = this.linkedTvIp === undefined || linkedTvActive === false;
+        const steps = getRecorderPowerSteps(shouldBeActive, this.device.recorderPowerOnLinkedTv !== false, this.linkedTvClient !== undefined, normalizeOff);
+        const offDelayMs = (this.device.recorderPowerOffDelaySeconds ?? 10) * 1000;
+        this.platform.log.info(`Setting recorder power ${shouldBeActive ? 'ON' : 'OFF'} for ${this.device.name} ` +
+            `(linkedTv=${this.linkedTvIp ?? 'none'}, linkedTvState=${linkedTvActive === undefined ? 'unknown' : linkedTvActive ? 'ON' : 'OFF'}, ` +
+            `offNormalization=${!shouldBeActive && normalizeOff ? 'enabled' : 'not used'}).`);
+        for (const step of steps) {
+            if (generation !== this.recorderPowerGeneration) {
+                this.platform.log.debug(`Cancelled superseded recorder power operation for ${this.device.name}.`);
+                return;
+            }
+            switch (step) {
+                case 'linkedTvOn':
+                    await this.linkedTvClient?.powerOn();
+                    if (this.linkedTvIp) {
+                        this.platform.updateDevicePowerState(this.linkedTvIp, true);
+                    }
+                    break;
+                case 'recorderMenu':
+                    await this.client.sendKey('menu');
+                    break;
+                case 'delay':
+                    await this.sleep(offDelayMs);
+                    break;
+                case 'recorderToggle':
+                    if (!shouldBeActive && normalizeOff && !shouldContinueRecorderOffNormalization(this.linkedTvIp, this.linkedTvIp ? this.platform.getDevicePowerState(this.linkedTvIp) : undefined)) {
+                        this.platform.log.info(`Cancelled recorder OFF normalization for ${this.device.name} because linked TV ` +
+                            `${this.linkedTvIp} is no longer confirmed OFF.`);
+                        return;
+                    }
+                    await this.client.powerToggle();
+                    break;
+            }
+        }
+        if (!shouldBeActive) {
             this.endNavigationMode();
         }
         this.updatePowerState(shouldBeActive, true);
@@ -771,6 +863,7 @@ class RegzaTvAccessory {
             this.ssdpRendererMissCount = 0;
         }
         this.accessory.context.active = active;
+        this.platform.updateDevicePowerState(this.device.ip, active);
         if (confirmed) {
             this.powerStateConfirmedAt = Date.now();
         }

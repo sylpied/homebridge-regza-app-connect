@@ -52,6 +52,11 @@ Apple Home Remote does not expose multiple Television services inside one HomeKi
 - Toggle power key `12`
 - HTTP 2xx success validation for the recorder's blank HTML response
 - No TV v2 status polling because those endpoints are unavailable on DBR-M590
+- Recorder-first power ON: DBR Start Menu (`46`) followed immediately by discrete ON for the selected linked TV
+- Conditional OFF normalization: while the linked TV is OFF, DBR `46` followed by a configurable delay (10 seconds by default) and toggle `12`; while the TV is ON, only `12` is sent to avoid disrupting viewing
+- Automatic OFF alignment after a confirmed linked-TV ON-to-OFF transition, regardless of whether HomeKit currently displays the DBR as ON or OFF: wait 5 seconds by default, then send DBR `46`, wait 10 seconds, and send `12`. Startup while the TV is already OFF does not trigger it, and TV power-on during either delay cancels it.
+
+The DBR read-back state remains optimistic because no reliable read-only power API has been found. ON always converges through `46`. OFF normalization is intentionally restricted to times when the selected linked TV is confirmed OFF, because waking the DBR while the TV is ON may change HDMI input or interrupt current content. A confirmed linked-TV ON-to-OFF transition schedules the same normalization after a configurable delay (5 seconds by default); startup OFF state does not trigger it. If the TV turns ON during either the initial delay or the 10-second post-`46` delay, the final `12` is cancelled. Per-recorder serialization also supersedes an older sequence when a newer power request arrives. Linked-TV selection, linked-TV power-on/off integration, the TV-OFF delay, and the recorder normalization delay are configurable in the settings UI.
 - When a REGZA TV is configured too, DBR volume/mute controls are forwarded to the first REGZA TV
 - Standalone (`external`) HomeKit publication is recommended
 

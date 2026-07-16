@@ -5,6 +5,7 @@ exports.getDeviceIdentity = getDeviceIdentity;
 exports.migrateSelectKeyMode = migrateSelectKeyMode;
 exports.getEffectiveModel = getEffectiveModel;
 exports.migrateDefaultInputNames = migrateDefaultInputNames;
+exports.shouldScheduleLinkedRecorderPowerOff = shouldScheduleLinkedRecorderPowerOff;
 const settings_1 = require("./settings");
 const platformAccessory_1 = require("./platformAccessory");
 const modelProfiles_1 = require("./modelProfiles");
@@ -46,6 +47,9 @@ function migrateDefaultInputNames(model, inputs) {
         return replacement ? { ...replacement, identifier: input.identifier ?? replacement.identifier } : input;
     });
 }
+function shouldScheduleLinkedRecorderPowerOff(previous, active) {
+    return previous === true && !active;
+}
 class RegzaPlatform {
     log;
     config;
@@ -53,6 +57,42 @@ class RegzaPlatform {
     Service;
     Characteristic;
     cachedAccessories = [];
+    devicePowerStates = new Map();
+    linkedRecorderPowerOffHandlers = new Map();
+    linkedRecorderPowerOffTimers = new Map();
+    updateDevicePowerState(ip, active) {
+        const previous = this.devicePowerStates.get(ip);
+        this.devicePowerStates.set(ip, active);
+        if (active) {
+            for (const timer of this.linkedRecorderPowerOffTimers.get(ip) ?? []) {
+                clearTimeout(timer);
+            }
+            this.linkedRecorderPowerOffTimers.delete(ip);
+            return;
+        }
+        // Do not wake recorders merely because Homebridge started while the TV was
+        // already off. Only a confirmed ON -> OFF transition schedules alignment.
+        if (!shouldScheduleLinkedRecorderPowerOff(previous, active)) {
+            return;
+        }
+        const timers = (this.linkedRecorderPowerOffHandlers.get(ip) ?? []).map(({ delayMs, handler }) => setTimeout(() => {
+            void handler().catch(error => {
+                this.log.warn(`Unable to align linked recorder power after TV ${ip} turned OFF: ` +
+                    `${error instanceof Error ? error.message : String(error)}`);
+            });
+        }, delayMs));
+        if (timers.length > 0) {
+            this.linkedRecorderPowerOffTimers.set(ip, timers);
+        }
+    }
+    getDevicePowerState(ip) {
+        return this.devicePowerStates.get(ip);
+    }
+    registerLinkedRecorderPowerOff(tvIp, delaySeconds, handler) {
+        const registrations = this.linkedRecorderPowerOffHandlers.get(tvIp) ?? [];
+        registrations.push({ delayMs: Math.max(0, delaySeconds) * 1000, handler });
+        this.linkedRecorderPowerOffHandlers.set(tvIp, registrations);
+    }
     constructor(log, config, api) {
         this.log = log;
         this.config = config;
@@ -80,8 +120,9 @@ class RegzaPlatform {
             }
             const normalizedDevice = this.normalizeDeviceConfig(device);
             const publishExternally = normalizedDevice.publishMode === 'external';
+            const tvDevices = normalizedDevices.filter(candidate => candidate.deviceType !== 'recorder');
             const volumeControlDevice = normalizedDevice.deviceType === 'recorder'
-                ? normalizedDevices.find(candidate => candidate.deviceType !== 'recorder')
+                ? tvDevices.find(candidate => candidate.ip === normalizedDevice.recorderLinkedTvIp) ?? tvDevices[0]
                 : undefined;
             this.logDeviceConfig(normalizedDevice);
             const identity = getDeviceIdentity(normalizedDevice);

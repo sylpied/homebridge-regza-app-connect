@@ -215,6 +215,39 @@
               "minimum": 0,
               "maximum": 60
             },
+            "recorderPowerOnLinkedTv": {
+              "title": "Power ON the Linked TV with the Recorder",
+              "type": "boolean",
+              "default": true,
+              "description": "DBR-M590 only. Sends Start Menu (46) to the recorder, then immediately sends the linked TV's discrete Power ON command."
+            },
+            "recorderPowerOffWithLinkedTv": {
+              "title": "Power OFF the Recorder when the Linked TV Turns OFF",
+              "type": "boolean",
+              "default": true,
+              "description": "DBR-M590 only. Runs recorder OFF normalization only after a confirmed linked-TV ON-to-OFF transition."
+            },
+            "recorderLinkedTvIp": {
+              "title": "Linked TV IP Address",
+              "type": "string",
+              "description": "DBR-M590 only. The custom UI provides a selector containing the configured televisions."
+            },
+            "recorderPowerOffDelaySeconds": {
+              "title": "Recorder Power OFF Normalization Delay Seconds",
+              "type": "integer",
+              "default": 10,
+              "minimum": 1,
+              "maximum": 30,
+              "description": "DBR-M590 only. While the linked TV is confirmed OFF, sends Start Menu (46), waits this long, then sends Power Toggle (12). While the TV is ON, only the toggle is sent to avoid interrupting viewing."
+            },
+            "recorderLinkedTvOffDelaySeconds": {
+              "title": "Delay After Linked TV Turns OFF Seconds",
+              "type": "integer",
+              "default": 5,
+              "minimum": 0,
+              "maximum": 30,
+              "description": "DBR-M590 only. After a confirmed linked-TV ON-to-OFF transition, waits this long before starting recorder OFF normalization. The action is cancelled if the TV turns ON again."
+            },
             "requestTimeoutMs": {
               "title": "Request Timeout Milliseconds",
               "type": "integer",
