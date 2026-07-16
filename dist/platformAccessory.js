@@ -18,6 +18,7 @@ exports.shouldAutoCloseNavigationMenu = shouldAutoCloseNavigationMenu;
 exports.getRecorderPowerSteps = getRecorderPowerSteps;
 exports.shouldContinueRecorderOffNormalization = shouldContinueRecorderOffNormalization;
 exports.shouldSkipPowerRequest = shouldSkipPowerRequest;
+exports.getAccessorySerialNumber = getAccessorySerialNumber;
 exports.getNavigationLayerAfterDateSelection = getNavigationLayerAfterDateSelection;
 const wake_on_lan_1 = __importDefault(require("wake_on_lan"));
 const settings_1 = require("./settings");
@@ -108,6 +109,9 @@ function shouldSkipPowerRequest(deviceType, requestedActive, currentActive) {
     // even when HomeKit already displays the requested state.
     return deviceType !== 'recorder' && requestedActive === currentActive;
 }
+function getAccessorySerialNumber(device) {
+    return device.mac?.trim() || device.ip;
+}
 function getNavigationLayerAfterDateSelection(currentLayer) {
     return currentLayer === 'dateSelection' ? 'menu' : currentLayer;
 }
@@ -197,7 +201,7 @@ class RegzaTvAccessory {
             ?.setCharacteristic(this.platform.Characteristic.Name, device.name)
             .setCharacteristic(this.platform.Characteristic.Manufacturer, 'TVS REGZA / Toshiba')
             .setCharacteristic(this.platform.Characteristic.Model, device.model ?? 'REGZA App Connect')
-            .setCharacteristic(this.platform.Characteristic.SerialNumber, device.mac ?? device.ip);
+            .setCharacteristic(this.platform.Characteristic.SerialNumber, getAccessorySerialNumber(device));
         this.tvService = this.accessory.getService(this.platform.Service.Television)
             ?? this.accessory.addService(this.platform.Service.Television, device.name, 'television');
         this.tvService.setPrimaryService();

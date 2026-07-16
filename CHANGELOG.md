@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.5
+
+- Fixed the HomeKit serial-number warning when a DBR-M590 is configured with a blank optional MAC address by falling back to its IP address.
+
 ## 0.8.4
 
 - Added deterministic DBR-M590 power normalization for environments where no readable power-state API is available.

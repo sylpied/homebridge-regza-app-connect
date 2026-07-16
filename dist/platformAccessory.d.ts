@@ -16,6 +16,7 @@ export type RecorderPowerStep = 'linkedTvOn' | 'recorderMenu' | 'delay' | 'recor
 export declare function getRecorderPowerSteps(shouldBeActive: boolean, powerOnLinkedTv: boolean, hasLinkedTv: boolean, normalizeOff: boolean): RecorderPowerStep[];
 export declare function shouldContinueRecorderOffNormalization(linkedTvIp: string | undefined, linkedTvActive: boolean | undefined): boolean;
 export declare function shouldSkipPowerRequest(deviceType: RegzaDeviceConfig['deviceType'], requestedActive: boolean, currentActive: boolean): boolean;
+export declare function getAccessorySerialNumber(device: Pick<RegzaDeviceConfig, 'mac' | 'ip'>): string;
 export type NavigationLayer = 'viewing' | 'menu' | 'dateSelection';
 export declare function getNavigationLayerAfterDateSelection(currentLayer: NavigationLayer): NavigationLayer;
 export declare class RegzaTvAccessory {
