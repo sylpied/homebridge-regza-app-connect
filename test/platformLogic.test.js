@@ -11,6 +11,7 @@ const { applyModelProfile } = require('../dist/modelProfiles');
 const {
   findInputIdentifier,
   getBroadcastInputKey,
+  getAccessorySerialNumber,
   getStatusPollDelayMs,
   getPlayPauseKey,
   getNavigationLayerAfterDateSelection,
@@ -60,6 +61,12 @@ test('recorder convergence runs regardless of its optimistic HomeKit power state
   assert.equal(shouldSkipPowerRequest('recorder', true, true), false);
   assert.equal(shouldSkipPowerRequest('tv', false, false), true);
   assert.equal(shouldSkipPowerRequest('tv', true, false), false);
+});
+
+test('accessory serial number falls back to IP when MAC is blank', () => {
+  assert.equal(getAccessorySerialNumber({ mac: '', ip: '192.0.2.20' }), '192.0.2.20');
+  assert.equal(getAccessorySerialNumber({ mac: '  ', ip: '192.0.2.20' }), '192.0.2.20');
+  assert.equal(getAccessorySerialNumber({ mac: 'AA:BB:CC:DD:EE:FF', ip: '192.0.2.20' }), 'AA:BB:CC:DD:EE:FF');
 });
 
 test('only transport failures count as connectivity failures', () => {
