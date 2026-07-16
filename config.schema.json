@@ -319,17 +319,31 @@
               "maximum": 5000,
               "description": "Delay between a preparatory Power ON or mute-probe command and the requested operation."
             },
+            "playPauseCompanionKey": {
+              "title": "Play/Pause Companion Key",
+              "type": "string",
+              "default": "blue",
+              "description": "Command sent after Play/Pause. Use blue for REGZA TVs and green for DBR-M590 so the same HomeKit button also opens date selection in the guide."
+            },
+            "playPauseCompanionDelayMs": {
+              "title": "Play/Pause Companion Delay Milliseconds",
+              "type": "integer",
+              "default": 300,
+              "minimum": 0,
+              "maximum": 5000,
+              "description": "Delay between the normal Play/Pause command and the companion color key."
+            },
             "selectKeyMode": {
-              "title": "First Select Button Action",
+              "title": "Information Button Action",
               "type": "string",
               "default": "guideFirst",
               "oneOf": [
-                { "title": "Open Program Guide, then Select", "enum": ["guideFirst"] },
-                { "title": "Open Menu, then Select", "enum": ["menuFirst"] },
-                { "title": "Open Quick Menu, then Select", "enum": ["quickFirst"] },
-                { "title": "Always send Select", "enum": ["normal"] }
+                { "title": "Open Program Guide", "enum": ["guideFirst"] },
+                { "title": "Open Menu", "enum": ["menuFirst"] },
+                { "title": "Open Quick Menu", "enum": ["quickFirst"] },
+                { "title": "Show Information", "enum": ["normal"] }
               ],
-              "description": "Controls the first HomeKit Select press. Back, Exit, Power OFF or timeout resets it."
+              "description": "Controls the HomeKit Information button. The Select button always sends the normal Select command."
             },
             "navigationTimeoutSeconds": {
               "title": "Navigation Mode Timeout Seconds",
@@ -337,7 +351,7 @@
               "default": 60,
               "minimum": 5,
               "maximum": 3600,
-              "description": "After this period without navigation input, the next Select press opens the configured menu again."
+              "description": "After this period without navigation input, contextual arrows return to their normal viewing behavior."
             },
             "navigationPostSelectResetSeconds": {
               "title": "Guide Auto-close Delay Seconds",

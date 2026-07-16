@@ -12,7 +12,8 @@
     enableWakeOnLan: false, wakeOnLanAddress: '255.255.255.255', wakeOnLanPort: 2304,
     powerOnDelaySeconds: 2, requestTimeoutMs: 5000, pollingInterval: 120, supportsSsdpRendererStatus: true,
     enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60,
-    operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst',
+    operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250,
+    playPauseCompanionKey: 'blue', playPauseCompanionDelayMs: 300, selectKeyMode: 'guideFirst',
     navigationTimeoutSeconds: 60, navigationPostSelectResetSeconds: 15,
     contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })),
   });
@@ -88,6 +89,8 @@
     </div>`;
     const remote = `<div class="regza-grid">
       ${select(`${p}-select-mode`, t('selectMode'), device.selectKeyMode || 'guideFirst', [['guideFirst', t('guideFirst')], ['menuFirst', t('menuFirst')], ['quickFirst', t('quickFirst')], ['normal', t('normalSelect')]])}
+      ${input(`${p}-play-pause-companion`, t('playPauseCompanionKey'), device.playPauseCompanionKey || (device.deviceType === 'recorder' ? 'green' : 'blue'), 'text', '', t('playPauseCompanionHelp'))}
+      ${input(`${p}-play-pause-delay`, t('playPauseCompanionDelay'), device.playPauseCompanionDelayMs ?? 300, 'number', 'min="0" max="5000"', t('playPauseCompanionDelayHelp'))}
       ${input(`${p}-nav-timeout`, t('navigationTimeout'), device.navigationTimeoutSeconds, 'number', 'min="5" max="3600"')}
       ${input(`${p}-post-select`, t('postSelectDelay'), device.navigationPostSelectResetSeconds, 'number', 'min="1" max="60"')}
       ${check(`${p}-context-arrows`, t('contextArrows'), device.contextualRemoteArrows !== false, t('contextArrowsHelp'))}
@@ -113,8 +116,8 @@
   };
   const bindDevice = (device, index) => {
     const p = `d${index}`;
-    [['name','name'],['model','model'],['device-type','deviceType'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['publish-mode','publishMode'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['recorder-linked-tv-ip','recorderLinkedTvIp'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
-    [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['operation-wake','operationPowerOnThresholdSeconds'],['stale-probe','stalePowerProbeHours'],['command-delay','operationCommandDelayMs'],['recorder-tv-off-delay','recorderLinkedTvOffDelaySeconds'],['recorder-off-delay','recorderPowerOffDelaySeconds'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
+    [['name','name'],['model','model'],['device-type','deviceType'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['publish-mode','publishMode'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['recorder-linked-tv-ip','recorderLinkedTvIp'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode'],['play-pause-companion','playPauseCompanionKey']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
+    [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['operation-wake','operationPowerOnThresholdSeconds'],['stale-probe','stalePowerProbeHours'],['command-delay','operationCommandDelayMs'],['recorder-tv-off-delay','recorderLinkedTvOffDelaySeconds'],['recorder-off-delay','recorderPowerOffDelaySeconds'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['play-pause-delay','playPauseCompanionDelayMs'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
     [['selfsigned','allowSelfSignedCertificate'],['ssdp-renderer','supportsSsdpRendererStatus'],['recorder-linked-tv','recorderPowerOnLinkedTv'],['recorder-linked-tv-off','recorderPowerOffWithLinkedTv'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
     ['device-type','power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
     byId(`${p}-model`)?.addEventListener('change', () => {
@@ -139,17 +142,18 @@
     renderInputs(device, index);
     updateConditional(device, index);
   };
-  const applyJ10x = (d) => Object.assign(d, { deviceType: 'tv', publishMode: 'external', protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, supportsSsdpRendererStatus: true, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst', contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })) });
+  const applyJ10x = (d) => Object.assign(d, { deviceType: 'tv', publishMode: 'external', protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, supportsSsdpRendererStatus: true, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, playPauseCompanionKey: 'blue', playPauseCompanionDelayMs: 300, selectKeyMode: 'guideFirst', contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })) });
   const applyDbrM590 = (d) => Object.assign(d, {
     deviceType: 'recorder', publishMode: 'external', protocol: 'http', port: 80, allowSelfSignedCertificate: false,
     powerMode: 'toggle', powerToggleKey: '12', recorderPowerOnLinkedTv: true, recorderPowerOffWithLinkedTv: true, recorderLinkedTvOffDelaySeconds: 5, recorderPowerOffDelaySeconds: 10, enableWakeOnLan: false,
     supportsSsdpRendererStatus: false, enableMutePowerProbe: false, powerProbeMode: 'optimistic',
+    playPauseCompanionKey: 'green', playPauseCompanionDelayMs: 300,
     selectKeyMode: 'menuFirst', contextualRemoteArrows: false,
     keyMap: {
       power: '12', powerToggle: '12', channelUp: '1e', channelDown: '1f',
       up: 'c0', down: 'c8', left: 'cc', right: 'c4', enter: '44', return: '4b',
       exit: '60', display: '5a', guide: 'b5', menu: '46', quick: '45',
-      blue: '29', terrestrial: 'bd', bs: 'be', cs: 'bf',
+      blue: '29', green: '2b', terrestrial: 'bd', bs: 'be', cs: 'bf',
       play: '13', pause: '17', stop: '16', rewind: '9a', fastForward: '98',
       previous: '84', next: '80', record: '15', recordingList: '6d',
     },

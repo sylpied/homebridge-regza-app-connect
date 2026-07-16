@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Moved program-guide/Start Menu opening from the first Select press to the HomeKit Information button; Select now always sends the normal Enter command.
+- Play/Pause now sends the normal alternating Pause/Play command followed by a configurable companion color key after a configurable delay.
+- Verified profiles default the companion key to Blue on 55J10X and Green on DBR-M590, allowing date selection without inferring nested guide/menu state.
+- Added Homebridge UI controls, model defaults, key mappings, tests, and bilingual documentation for the new remote behavior.
+
 ## 0.8.6
 
 - Fixed stale DBR short key mappings being reused by the verified 55J10X profile after switching models; verified TV mappings now take precedence.

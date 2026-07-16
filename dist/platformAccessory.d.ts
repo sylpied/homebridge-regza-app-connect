@@ -11,14 +11,14 @@ export declare function shouldConfirmOffAfterConnectivityFailures(consecutiveFai
 export declare function shouldConfirmOffAfterSsdpMisses(consecutiveMisses: number): boolean;
 export declare function getRecorderPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
 export declare function getPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
+export declare function getPlayPauseCompanionKey(deviceType: RegzaDeviceConfig['deviceType'], configuredKey?: string): string;
+export declare function getPlayPauseCommandPlan(currentlyPaused: boolean, deviceType: RegzaDeviceConfig['deviceType'], configuredCompanionKey?: string): [playPauseKey: 'play' | 'pause', companionKey: string];
 export declare function shouldAutoCloseNavigationMenu(deviceType: RegzaDeviceConfig['deviceType']): boolean;
 export type RecorderPowerStep = 'linkedTvOn' | 'recorderMenu' | 'delay' | 'recorderToggle';
 export declare function getRecorderPowerSteps(shouldBeActive: boolean, powerOnLinkedTv: boolean, hasLinkedTv: boolean, normalizeOff: boolean): RecorderPowerStep[];
 export declare function shouldContinueRecorderOffNormalization(linkedTvIp: string | undefined, linkedTvActive: boolean | undefined): boolean;
 export declare function shouldSkipPowerRequest(deviceType: RegzaDeviceConfig['deviceType'], requestedActive: boolean, currentActive: boolean): boolean;
 export declare function getAccessorySerialNumber(device: Pick<RegzaDeviceConfig, 'mac' | 'ip'>): string;
-export type NavigationLayer = 'viewing' | 'menu' | 'dateSelection';
-export declare function getNavigationLayerAfterDateSelection(currentLayer: NavigationLayer): NavigationLayer;
 export declare class RegzaTvAccessory {
     private readonly platform;
     private readonly accessory;
@@ -44,7 +44,6 @@ export declare class RegzaTvAccessory {
     private statusPollRunning?;
     private statusPollTimer?;
     private navigationModeActive;
-    private navigationLayer;
     private navigationSelectionMade;
     private navigationTimer?;
     private stalePowerProbeTimer?;
@@ -61,6 +60,7 @@ export declare class RegzaTvAccessory {
     private setInput;
     private handleRemoteKey;
     private handleSelectKey;
+    private handleInformationKey;
     private cycleBroadcastBand;
     private refreshNavigationTimeout;
     private scheduleNavigationReset;

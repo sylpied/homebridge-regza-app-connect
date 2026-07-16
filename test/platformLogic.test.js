@@ -14,7 +14,8 @@ const {
   getAccessorySerialNumber,
   getStatusPollDelayMs,
   getPlayPauseKey,
-  getNavigationLayerAfterDateSelection,
+  getPlayPauseCompanionKey,
+  getPlayPauseCommandPlan,
   getRecorderPowerSteps,
   getRecorderPlayPauseKey,
   isConnectivityFailure,
@@ -129,6 +130,9 @@ test('DBR profile repairs stale key overrides with verified recorder keys', () =
   assert.equal(profiled.keyMap.enter, '44');
   assert.equal(profiled.keyMap.timeshift, undefined);
   assert.equal(profiled.keyMap.blue, '29');
+  assert.equal(profiled.keyMap.green, '2b');
+  assert.equal(profiled.playPauseCompanionKey, 'green');
+  assert.equal(profiled.playPauseCompanionDelayMs, 300);
   assert.equal(profiled.keyMap.display, '5a');
   assert.equal(profiled.keyMap.rewind, '9a');
   assert.equal(profiled.keyMap.fastForward, '98');
@@ -147,6 +151,10 @@ test('55J10X profile repairs stale recorder key overrides with verified TV keys'
   assert.equal(profiled.keyMap.return, '40BF3B');
   assert.equal(profiled.keyMap.enter, '40BF3D');
   assert.equal(profiled.keyMap.up, '40BF3E');
+  assert.equal(profiled.keyMap.blue, '40BF73');
+  assert.equal(profiled.keyMap.green, '40BF75');
+  assert.equal(profiled.playPauseCompanionKey, 'blue');
+  assert.equal(profiled.playPauseCompanionDelayMs, 300);
 });
 
 test('55J10X is published as a standalone Television accessory', () => {
@@ -207,10 +215,19 @@ test('Play/Pause always alternates dedicated playback commands', () => {
   assert.equal(getPlayPauseKey(true), 'play');
 });
 
-test('Select and Back both return date selection to the menu layer', () => {
-  assert.equal(getNavigationLayerAfterDateSelection('dateSelection'), 'menu');
-  assert.equal(getNavigationLayerAfterDateSelection('menu'), 'menu');
-  assert.equal(getNavigationLayerAfterDateSelection('viewing'), 'viewing');
+test('Play/Pause companion key defaults by device type and supports overrides', () => {
+  assert.equal(getPlayPauseCompanionKey('tv'), 'blue');
+  assert.equal(getPlayPauseCompanionKey(undefined), 'blue');
+  assert.equal(getPlayPauseCompanionKey('recorder'), 'green');
+  assert.equal(getPlayPauseCompanionKey('recorder', 'customColor'), 'customColor');
+});
+
+test('Play/Pause command plans preserve playback and append the model color key', () => {
+  assert.deepEqual(getPlayPauseCommandPlan(false, 'tv'), ['pause', 'blue']);
+  assert.deepEqual(getPlayPauseCommandPlan(true, 'tv'), ['play', 'blue']);
+  assert.deepEqual(getPlayPauseCommandPlan(false, 'recorder'), ['pause', 'green']);
+  assert.deepEqual(getPlayPauseCommandPlan(true, 'recorder'), ['play', 'green']);
+  assert.deepEqual(getPlayPauseCommandPlan(false, 'recorder', 'yellow'), ['pause', 'yellow']);
 });
 
 test('broadcast channel codes map to terrestrial, BS, and CS inputs', () => {
