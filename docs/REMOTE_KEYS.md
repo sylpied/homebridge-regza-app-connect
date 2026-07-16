@@ -66,8 +66,9 @@ DBR-M590 sends recorder-specific short codes to `/remote/remote.htm?key=` rather
 | Terrestrial / BS / CS | `bd` / `be` / `bf` |
 | Record / Recording list | `15` / `6d` |
 | Display | `5a` |
+| Blue / Green | `29` / `2b` |
 | Time Slip | `1a` |
 
-Power, Start Menu, Down, and Select have been verified on a physical DBR-M590. The APK identifies `1a` as `TIME_SLIP`; it does not open the Time Shift program guide. The verified Start Menu code `46` is therefore used for the recorder's first Select action.
+Power, Start Menu, Down, and Select have been verified on a physical DBR-M590. The APK identifies `1a` as `TIME_SLIP`; it does not open the Time Shift program guide. The verified Start Menu code `46` is therefore assigned to the HomeKit Information action. Play/Pause also sends Green (`2b`) so date selection remains accessible in the recorder guide without menu-layer inference.
 
 Please report tested codes with the device type, exact model, code, and result in a GitHub Issue.

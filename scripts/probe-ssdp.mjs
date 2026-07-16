@@ -2,10 +2,11 @@ import dgram from 'node:dgram';
 
 const timeoutArgument = process.argv[2] ?? '5000';
 const timeoutMs = Number(timeoutArgument);
+const searchTarget = process.argv[3] ?? 'ssdp:all';
 
 if (!Number.isFinite(timeoutMs) || timeoutMs < 1) {
   console.error(`invalid timeout: ${timeoutArgument}`);
-  console.error('usage: node scripts/probe-ssdp.mjs [timeout-ms]');
+  console.error('usage: node scripts/probe-ssdp.mjs [timeout-ms] [search-target]');
   process.exit(2);
 }
 
@@ -16,7 +17,7 @@ const request = Buffer.from([
   'HOST: 239.255.255.250:1900',
   'MAN: "ssdp:discover"',
   'MX: 2',
-  'ST: ssdp:all',
+  `ST: ${searchTarget}`,
   '',
   '',
 ].join('\r\n'));
@@ -59,7 +60,7 @@ socket.bind(0, '0.0.0.0', () => {
     if (error) {
       console.error(error.message);
     } else {
-      console.log(`sent SSDP discovery; waiting ${timeoutMs}ms`);
+      console.log(`sent SSDP discovery for ${searchTarget}; waiting ${timeoutMs}ms`);
     }
   });
 });

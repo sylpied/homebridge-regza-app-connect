@@ -57,6 +57,8 @@ export interface RegzaDeviceConfig {
   operationPowerOnThresholdSeconds?: number;
   stalePowerProbeHours?: number;
   operationCommandDelayMs?: number;
+  playPauseCompanionKey?: string;
+  playPauseCompanionDelayMs?: number;
   selectKeyMode?: SelectKeyMode;
   navigationTimeoutSeconds?: number;
   navigationPostSelectResetSeconds?: number;

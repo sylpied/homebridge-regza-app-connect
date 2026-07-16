@@ -82,6 +82,24 @@ export function getPlayPauseKey(
   return getRecorderPlayPauseKey(currentlyPaused);
 }
 
+export function getPlayPauseCompanionKey(
+  deviceType: RegzaDeviceConfig['deviceType'],
+  configuredKey?: string,
+): string {
+  return configuredKey?.trim() || (deviceType === 'recorder' ? 'green' : 'blue');
+}
+
+export function getPlayPauseCommandPlan(
+  currentlyPaused: boolean,
+  deviceType: RegzaDeviceConfig['deviceType'],
+  configuredCompanionKey?: string,
+): [playPauseKey: 'play' | 'pause', companionKey: string] {
+  return [
+    getPlayPauseKey(currentlyPaused),
+    getPlayPauseCompanionKey(deviceType, configuredCompanionKey),
+  ];
+}
+
 export function shouldAutoCloseNavigationMenu(deviceType: RegzaDeviceConfig['deviceType']): boolean {
   // Recorder menus can transition directly into playback. Sending Back from a
   // timer would then interrupt playback, so recorder navigation only resets
@@ -129,14 +147,6 @@ export function getAccessorySerialNumber(device: Pick<RegzaDeviceConfig, 'mac' |
   return device.mac?.trim() || device.ip;
 }
 
-export type NavigationLayer = 'viewing' | 'menu' | 'dateSelection';
-
-export function getNavigationLayerAfterDateSelection(
-  currentLayer: NavigationLayer,
-): NavigationLayer {
-  return currentLayer === 'dateSelection' ? 'menu' : currentLayer;
-}
-
 export class RegzaTvAccessory {
   private readonly client: RegzaClient;
   private readonly volumeClient: RegzaClient;
@@ -159,7 +169,6 @@ export class RegzaTvAccessory {
   private statusPollRunning?: Promise<boolean>;
   private statusPollTimer?: NodeJS.Timeout;
   private navigationModeActive = false;
-  private navigationLayer: NavigationLayer = 'viewing';
   private navigationSelectionMade = false;
   private navigationTimer?: NodeJS.Timeout;
   private stalePowerProbeTimer?: NodeJS.Timeout;
@@ -483,8 +492,7 @@ export class RegzaTvAccessory {
     if (this.platform.config.debug) {
       this.platform.log.info(
         `[${this.device.name}] HomeKit remote key=${value}, deviceType=${this.device.deviceType ?? 'tv'}, ` +
-        `selectKeyMode=${this.device.selectKeyMode ?? 'guideFirst'}, navigation=${this.navigationModeActive}, ` +
-        `layer=${this.navigationLayer}.`,
+        `informationMode=${this.device.selectKeyMode ?? 'guideFirst'}, navigation=${this.navigationModeActive}.`,
       );
     }
     switch (value) {
@@ -533,21 +541,14 @@ export class RegzaTvAccessory {
         break;
       case this.platform.Characteristic.RemoteKey.BACK:
         await this.client.sendKey('return');
-        if (this.navigationLayer === 'dateSelection') {
-          this.navigationLayer = getNavigationLayerAfterDateSelection(this.navigationLayer);
-          this.navigationSelectionMade = false;
-          this.refreshNavigationTimeout();
-          this.logNavigationTransition('back from date selection');
-        } else {
-          this.endNavigationMode();
-        }
+        this.endNavigationMode();
         break;
       case this.platform.Characteristic.RemoteKey.EXIT:
         await this.client.sendKey('exit');
         this.endNavigationMode();
         break;
       case this.platform.Characteristic.RemoteKey.INFORMATION:
-        await this.client.sendKey('display');
+        await this.handleInformationKey();
         break;
       case this.platform.Characteristic.RemoteKey.NEXT_TRACK:
         if (this.device.deviceType === 'recorder') {
@@ -567,9 +568,18 @@ export class RegzaTvAccessory {
         break;
       case this.platform.Characteristic.RemoteKey.PLAY_PAUSE:
         {
-          const playPauseKey = getPlayPauseKey(this.playbackPaused);
+          const [playPauseKey, companionKey] = getPlayPauseCommandPlan(
+            this.playbackPaused,
+            this.device.deviceType,
+            this.device.playPauseCompanionKey,
+          );
           await this.client.sendKey(playPauseKey);
           this.playbackPaused = !this.playbackPaused;
+          const companionDelayMs = Math.max(0, this.device.playPauseCompanionDelayMs ?? 300);
+          if (companionDelayMs > 0) {
+            await this.sleep(companionDelayMs);
+          }
+          await this.client.sendKey(companionKey);
         }
         break;
       default:
@@ -580,26 +590,22 @@ export class RegzaTvAccessory {
   }
 
   private async handleSelectKey(): Promise<void> {
+    await this.client.sendKey('enter');
+    if (this.navigationModeActive) {
+      this.navigationSelectionMade = true;
+      this.scheduleNavigationReset(
+        this.device.navigationPostSelectResetSeconds ?? 15,
+        shouldAutoCloseNavigationMenu(this.device.deviceType),
+      );
+    }
+  }
+
+  private async handleInformationKey(): Promise<void> {
     const mode = this.device.selectKeyMode ?? 'guideFirst';
-    if (mode === 'normal' || this.navigationModeActive) {
-      await this.client.sendKey('enter');
-      if (this.navigationModeActive) {
-        if (this.navigationLayer === 'dateSelection') {
-          this.navigationLayer = getNavigationLayerAfterDateSelection(this.navigationLayer);
-          this.navigationSelectionMade = false;
-          this.refreshNavigationTimeout();
-          this.logNavigationTransition('select from date selection');
-        } else {
-          this.navigationSelectionMade = true;
-          this.scheduleNavigationReset(
-            this.device.navigationPostSelectResetSeconds ?? 15,
-            shouldAutoCloseNavigationMenu(this.device.deviceType),
-          );
-        }
-      }
+    if (mode === 'normal') {
+      await this.client.sendKey('display');
       return;
     }
-
     const openingKey = mode === 'menuFirst'
       ? 'menu'
       : mode === 'quickFirst'
@@ -609,10 +615,9 @@ export class RegzaTvAccessory {
           : 'guide';
     await this.client.sendKey(openingKey);
     this.navigationModeActive = true;
-    this.navigationLayer = 'menu';
     this.navigationSelectionMade = false;
     this.refreshNavigationTimeout();
-    this.logNavigationTransition(`opened with ${openingKey}`);
+    this.logNavigationTransition(`information opened with ${openingKey}`);
   }
 
   private async cycleBroadcastBand(direction: -1 | 1): Promise<void> {
@@ -676,10 +681,6 @@ export class RegzaTvAccessory {
 
   private async closeNavigationMenu(): Promise<void> {
     try {
-      if (this.navigationLayer === 'dateSelection') {
-        await this.client.sendKey('return');
-        await this.sleep(200);
-      }
       await this.client.sendKey('return');
       this.platform.log.debug(`Navigation menu auto-closed for ${this.device.name}.`);
     } catch (error) {
@@ -698,14 +699,12 @@ export class RegzaTvAccessory {
       this.navigationTimer = undefined;
     }
     this.navigationModeActive = false;
-    this.navigationLayer = 'viewing';
     this.navigationSelectionMade = false;
   }
 
   private logNavigationTransition(reason: string): void {
     this.platform.log.debug(
-      `Navigation state for ${this.device.name}: layer=${this.navigationLayer}, ` +
-      `active=${this.navigationModeActive}, reason=${reason}.`,
+      `Navigation state for ${this.device.name}: active=${this.navigationModeActive}, reason=${reason}.`,
     );
   }
 

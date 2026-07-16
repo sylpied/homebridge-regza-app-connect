@@ -47,8 +47,8 @@ Apple Home Remote does not expose multiple Television services inside one HomeKi
 
 - Power, Start Menu, arrows, Select, Back, and playback controls
 - Terrestrial, BS, and CS switching
-- First Select opens Start Menu; subsequent Select and arrows navigate normally
-- Play/Pause alternates the recorder's dedicated Play and Pause commands
+- Information opens Start Menu; Select always sends the normal recorder Select command
+- Play/Pause alternates the recorder's dedicated Play/Pause commands and then sends Green for guide date selection
 - Toggle power key `12`
 - HTTP 2xx success validation for the recorder's blank HTML response
 - No TV v2 status polling because those endpoints are unavailable on DBR-M590
@@ -248,27 +248,31 @@ node scripts/probe-upnp-read-state.mjs http://192.168.1.151:55247/dms/
 
 See the [REGZA App Connect protocol discovery guide](docs/PROTOCOL.md) ([日本語](docs/PROTOCOL.ja.md)) for safe commands, response format, verified status endpoints and instructions for reporting another model. Remove credentials, access codes and device identifiers before sharing results.
 
-## HomeKit remote navigation mode
+## HomeKit remote navigation and Play/Pause
 
-The HomeKit TV remote does not provide a dedicated REGZA menu button. v0.4.0 can use the first Select press to open a menu, then use later Select presses as the normal Enter key.
+The HomeKit TV remote does not provide dedicated REGZA guide or color buttons. The Information button opens the configured guide/menu, while Select always sends the normal Enter key.
 
 ```json
 {
   "selectKeyMode": "guideFirst",
+  "playPauseCompanionKey": "blue",
+  "playPauseCompanionDelayMs": 300,
   "navigationTimeoutSeconds": 60,
   "navigationPostSelectResetSeconds": 15,
   "contextualRemoteArrows": true
 }
 ```
 
-- `guideFirst`: first Select opens the program guide (`40BF6E`)
-- `menuFirst`: first Select opens settings (`40BFD0`)
-- `quickFirst`: first Select opens the quick menu (`40BF27`)
-- `normal`: every Select sends Enter (`40BF3D`)
+- `guideFirst`: Information opens the program guide (`40BF6E`)
+- `menuFirst`: Information opens the configured menu (`40BFD0` on TV, `46` on DBR-M590)
+- `quickFirst`: Information opens the quick menu (`40BF27`)
+- `normal`: Information sends Display/Information; Select still always sends Enter
 
-Outside navigation mode, Up/Down change channel. Right cycles terrestrial → BS → CS → terrestrial, while Left cycles in reverse. From HDMI, the first cycle returns to terrestrial. Absolute terrestrial/BS/CS/HDMI selection remains available in HomeKit's separate input-selection screen. The first Select opens the configured guide/menu; arrows then become normal directional keys and Select becomes Enter.
+Outside navigation mode, Up/Down change channel. Right cycles terrestrial → BS → CS → terrestrial, while Left cycles in reverse. From HDMI, the first cycle returns to terrestrial. Absolute terrestrial/BS/CS/HDMI selection remains available in HomeKit's separate input-selection screen. After Information opens the configured guide/menu, arrows become normal directional keys.
 
-On REGZA TVs, after a selection is made, 15 seconds without another arrow or Select sends Back automatically, closes the guide/menu and exits navigation mode. Additional navigation restarts the timer. The next Select can therefore open the guide again without requiring a manual Back press. Recorders only reset the plugin's internal navigation state after the timeout; they do not receive an automatic Back command that could interrupt playback.
+Play/Pause always sends the normal alternating Pause/Play command and then a companion color key after a short delay. Verified profiles use Blue on 55J10X and Green on DBR-M590. During playback the color key is normally ignored; in the guide/Time Shift screen it opens date selection without requiring the plugin to infer the current menu layer.
+
+On REGZA TVs, after a selection is made, 15 seconds without another arrow or Select sends Back automatically, closes the guide/menu and exits navigation mode. Additional navigation restarts the timer. Information can open the guide again without repurposing Select. Recorders only reset the plugin's internal navigation state after the timeout; they do not receive an automatic Back command that could interrupt playback.
 
 Back, Exit, Power OFF, or the longer inactivity timeout also resets navigation mode. The plugin cannot directly observe a menu being closed with the physical remote, so these timers act as fallbacks.
 

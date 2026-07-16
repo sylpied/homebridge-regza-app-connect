@@ -22,6 +22,7 @@ exports.RemoteKeys = {
     QUICK: '40BF27',
     EXIT: '40BF3C',
     BLUE: '40BF73',
+    GREEN: '40BF75',
     REWIND: '40BE2C',
     PLAY: '40BE2D',
     FAST_FORWARD: '40BE2E',
