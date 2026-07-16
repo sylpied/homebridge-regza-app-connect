@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.6
+
+- Fixed stale DBR short key mappings being reused by the verified 55J10X profile after switching models; verified TV mappings now take precedence.
+- Prevented momentary HomeKit remote-button failures from escaping the characteristic write handler after the request error has already been logged.
+
 ## 0.8.5
 
 - Fixed the HomeKit serial-number warning when a DBR-M590 is configured with a blank optional MAC address by falling back to its IP address.

@@ -138,6 +138,17 @@ test('DBR profile repairs stale key overrides with verified recorder keys', () =
   assert.equal(profiled.recorderPowerOffDelaySeconds, 10);
 });
 
+test('55J10X profile repairs stale recorder key overrides with verified TV keys', () => {
+  const profiled = applyModelProfile({
+    model: '55J10X',
+    keyMap: { guide: 'b5', return: '4b', enter: '44', up: 'c0' },
+  });
+  assert.equal(profiled.keyMap.guide, '40BF6E');
+  assert.equal(profiled.keyMap.return, '40BF3B');
+  assert.equal(profiled.keyMap.enter, '40BF3D');
+  assert.equal(profiled.keyMap.up, '40BF3E');
+});
+
 test('55J10X is published as a standalone Television accessory', () => {
   assert.equal(applyModelProfile({ model: '55J10X' }).publishMode, 'external');
 });

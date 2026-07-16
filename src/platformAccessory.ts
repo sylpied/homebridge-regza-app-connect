@@ -280,7 +280,14 @@ export class RegzaTvAccessory {
       .onSet(async value => this.setInput(Number(value)));
 
     this.tvService.getCharacteristic(this.platform.Characteristic.RemoteKey)
-      .onSet(async value => this.handleRemoteKey(Number(value)));
+      .onSet(async value => {
+        try {
+          await this.handleRemoteKey(Number(value));
+        } catch {
+          // RegzaClient already logs the request failure with device and key.
+          // Momentary remote-button failures must not escape the HAP handler.
+        }
+      });
   }
 
   private configureSpeaker(): void {
