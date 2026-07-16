@@ -39,6 +39,11 @@ export interface RegzaDeviceConfig {
     wakeOnLanPort?: number;
     wakeOnLanAddress?: string;
     powerOnDelaySeconds?: number;
+    recorderPowerOnLinkedTv?: boolean;
+    recorderPowerOffWithLinkedTv?: boolean;
+    recorderLinkedTvIp?: string;
+    recorderLinkedTvOffDelaySeconds?: number;
+    recorderPowerOffDelaySeconds?: number;
     requestTimeoutMs?: number;
     pollingInterval?: number;
     enableMutePowerProbe?: boolean;

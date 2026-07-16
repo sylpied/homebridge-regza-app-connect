@@ -1,6 +1,12 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const { getDeviceIdentity, getEffectiveModel, migrateDefaultInputNames, migrateSelectKeyMode } = require('../dist/platform');
+const {
+  getDeviceIdentity,
+  getEffectiveModel,
+  migrateDefaultInputNames,
+  migrateSelectKeyMode,
+  shouldScheduleLinkedRecorderPowerOff,
+} = require('../dist/platform');
 const { applyModelProfile } = require('../dist/modelProfiles');
 const {
   findInputIdentifier,
@@ -8,12 +14,15 @@ const {
   getStatusPollDelayMs,
   getPlayPauseKey,
   getNavigationLayerAfterDateSelection,
+  getRecorderPowerSteps,
   getRecorderPlayPauseKey,
   isConnectivityFailure,
   isPlaybackDefinitelyActive,
   shouldConfirmOffAfterConnectivityFailures,
   shouldConfirmOffAfterSsdpMisses,
+  shouldContinueRecorderOffNormalization,
   shouldPrepareOperationWake,
+  shouldSkipPowerRequest,
   shouldAutoCloseNavigationMenu,
 } = require('../dist/platformAccessory');
 
@@ -21,6 +30,36 @@ test('operation wake is enabled only for discrete power mode after threshold', (
   assert.equal(shouldPrepareOperationWake('discrete', 30_000, 30_000), true);
   assert.equal(shouldPrepareOperationWake('discrete', 29_999, 30_000), false);
   assert.equal(shouldPrepareOperationWake('toggle', 60_000, 30_000), false);
+});
+
+test('recorder power normalization has deterministic ON and OFF plans', () => {
+  assert.deepEqual(getRecorderPowerSteps(true, true, true, true), ['recorderMenu', 'linkedTvOn']);
+  assert.deepEqual(getRecorderPowerSteps(true, false, true, true), ['recorderMenu']);
+  assert.deepEqual(getRecorderPowerSteps(true, true, false, true), ['recorderMenu']);
+  assert.deepEqual(getRecorderPowerSteps(false, true, true, true), ['recorderMenu', 'delay', 'recorderToggle']);
+  assert.deepEqual(getRecorderPowerSteps(false, true, true, false), ['recorderToggle']);
+});
+
+test('linked recorder OFF alignment runs only for a confirmed TV ON-to-OFF transition', () => {
+  assert.equal(shouldScheduleLinkedRecorderPowerOff(true, false), true);
+  assert.equal(shouldScheduleLinkedRecorderPowerOff(false, false), false);
+  assert.equal(shouldScheduleLinkedRecorderPowerOff(undefined, false), false);
+  assert.equal(shouldScheduleLinkedRecorderPowerOff(true, true), false);
+});
+
+test('recorder OFF normalization continues only while its linked TV remains confirmed OFF', () => {
+  assert.equal(shouldContinueRecorderOffNormalization('192.0.2.10', false), true);
+  assert.equal(shouldContinueRecorderOffNormalization('192.0.2.10', true), false);
+  assert.equal(shouldContinueRecorderOffNormalization('192.0.2.10', undefined), false);
+  assert.equal(shouldContinueRecorderOffNormalization(undefined, undefined), true);
+});
+
+test('recorder convergence runs regardless of its optimistic HomeKit power state', () => {
+  assert.equal(shouldSkipPowerRequest('recorder', false, false), false);
+  assert.equal(shouldSkipPowerRequest('recorder', false, true), false);
+  assert.equal(shouldSkipPowerRequest('recorder', true, true), false);
+  assert.equal(shouldSkipPowerRequest('tv', false, false), true);
+  assert.equal(shouldSkipPowerRequest('tv', true, false), false);
 });
 
 test('only transport failures count as connectivity failures', () => {
@@ -86,6 +125,10 @@ test('DBR profile repairs stale key overrides with verified recorder keys', () =
   assert.equal(profiled.keyMap.display, '5a');
   assert.equal(profiled.keyMap.rewind, '9a');
   assert.equal(profiled.keyMap.fastForward, '98');
+  assert.equal(profiled.recorderPowerOnLinkedTv, true);
+  assert.equal(profiled.recorderPowerOffWithLinkedTv, true);
+  assert.equal(profiled.recorderLinkedTvOffDelaySeconds, 5);
+  assert.equal(profiled.recorderPowerOffDelaySeconds, 10);
 });
 
 test('55J10X is published as a standalone Television accessory', () => {

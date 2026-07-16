@@ -48,10 +48,65 @@ export function migrateDefaultInputNames(
   });
 }
 
+export function shouldScheduleLinkedRecorderPowerOff(
+  previous: boolean | undefined,
+  active: boolean,
+): boolean {
+  return previous === true && !active;
+}
+
 export class RegzaPlatform implements DynamicPlatformPlugin {
   public readonly Service;
   public readonly Characteristic;
   private readonly cachedAccessories: PlatformAccessory[] = [];
+  private readonly devicePowerStates = new Map<string, boolean>();
+  private readonly linkedRecorderPowerOffHandlers = new Map<string, Array<{
+    delayMs: number;
+    handler: () => Promise<void>;
+  }>>();
+  private readonly linkedRecorderPowerOffTimers = new Map<string, NodeJS.Timeout[]>();
+
+  public updateDevicePowerState(ip: string, active: boolean): void {
+    const previous = this.devicePowerStates.get(ip);
+    this.devicePowerStates.set(ip, active);
+    if (active) {
+      for (const timer of this.linkedRecorderPowerOffTimers.get(ip) ?? []) {
+        clearTimeout(timer);
+      }
+      this.linkedRecorderPowerOffTimers.delete(ip);
+      return;
+    }
+    // Do not wake recorders merely because Homebridge started while the TV was
+    // already off. Only a confirmed ON -> OFF transition schedules alignment.
+    if (!shouldScheduleLinkedRecorderPowerOff(previous, active)) {
+      return;
+    }
+    const timers = (this.linkedRecorderPowerOffHandlers.get(ip) ?? []).map(({ delayMs, handler }) => setTimeout(() => {
+      void handler().catch(error => {
+        this.log.warn(
+          `Unable to align linked recorder power after TV ${ip} turned OFF: ` +
+          `${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    }, delayMs));
+    if (timers.length > 0) {
+      this.linkedRecorderPowerOffTimers.set(ip, timers);
+    }
+  }
+
+  public getDevicePowerState(ip: string): boolean | undefined {
+    return this.devicePowerStates.get(ip);
+  }
+
+  public registerLinkedRecorderPowerOff(
+    tvIp: string,
+    delaySeconds: number,
+    handler: () => Promise<void>,
+  ): void {
+    const registrations = this.linkedRecorderPowerOffHandlers.get(tvIp) ?? [];
+    registrations.push({ delayMs: Math.max(0, delaySeconds) * 1000, handler });
+    this.linkedRecorderPowerOffHandlers.set(tvIp, registrations);
+  }
 
   constructor(
     public readonly log: Logging,
@@ -87,8 +142,9 @@ export class RegzaPlatform implements DynamicPlatformPlugin {
 
       const normalizedDevice = this.normalizeDeviceConfig(device);
       const publishExternally = normalizedDevice.publishMode === 'external';
+      const tvDevices = normalizedDevices.filter(candidate => candidate.deviceType !== 'recorder');
       const volumeControlDevice = normalizedDevice.deviceType === 'recorder'
-        ? normalizedDevices.find(candidate => candidate.deviceType !== 'recorder')
+        ? tvDevices.find(candidate => candidate.ip === normalizedDevice.recorderLinkedTvIp) ?? tvDevices[0]
         : undefined;
 
       this.logDeviceConfig(normalizedDevice);

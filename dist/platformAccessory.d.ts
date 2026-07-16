@@ -12,6 +12,10 @@ export declare function shouldConfirmOffAfterSsdpMisses(consecutiveMisses: numbe
 export declare function getRecorderPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
 export declare function getPlayPauseKey(currentlyPaused: boolean): 'play' | 'pause';
 export declare function shouldAutoCloseNavigationMenu(deviceType: RegzaDeviceConfig['deviceType']): boolean;
+export type RecorderPowerStep = 'linkedTvOn' | 'recorderMenu' | 'delay' | 'recorderToggle';
+export declare function getRecorderPowerSteps(shouldBeActive: boolean, powerOnLinkedTv: boolean, hasLinkedTv: boolean, normalizeOff: boolean): RecorderPowerStep[];
+export declare function shouldContinueRecorderOffNormalization(linkedTvIp: string | undefined, linkedTvActive: boolean | undefined): boolean;
+export declare function shouldSkipPowerRequest(deviceType: RegzaDeviceConfig['deviceType'], requestedActive: boolean, currentActive: boolean): boolean;
 export type NavigationLayer = 'viewing' | 'menu' | 'dateSelection';
 export declare function getNavigationLayerAfterDateSelection(currentLayer: NavigationLayer): NavigationLayer;
 export declare class RegzaTvAccessory {
@@ -20,6 +24,10 @@ export declare class RegzaTvAccessory {
     private readonly device;
     private readonly client;
     private readonly volumeClient;
+    private readonly linkedTvClient?;
+    private readonly linkedTvIp?;
+    private recorderPowerOperation;
+    private recorderPowerGeneration;
     private readonly tvService;
     private readonly speakerService?;
     private active;
@@ -47,6 +55,8 @@ export declare class RegzaTvAccessory {
     private configureSpeaker;
     private configureInputs;
     private setActive;
+    private setRecorderActive;
+    private runRecorderPowerOperation;
     private setInput;
     private handleRemoteKey;
     private handleSelectKey;

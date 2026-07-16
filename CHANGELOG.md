@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.4
+
+- Added deterministic DBR-M590 power normalization for environments where no readable power-state API is available.
+- Power ON now sends DBR Start Menu `46` and immediately sends the selected linked TV's discrete ON command, without a TV startup delay.
+- Power OFF uses `46`, a configurable recorder stabilization delay (10 seconds by default), and toggle `12` only while the linked TV is OFF. While the TV is ON, it sends only `12` to avoid interrupting viewing.
+- Added Homebridge UI controls for linked-TV selection, linked-TV power-on and the DBR OFF normalization delay.
+- Added automatic DBR OFF alignment after a confirmed linked-TV ON-to-OFF transition: wait 5 seconds by default, then send `46`, wait 10 seconds, and send `12`; startup OFF state does not trigger it and TV power-on cancels the pending action.
+- Added an independent UI switch for linked-TV OFF integration, cancellation during both wait phases, final linked-TV state revalidation, and per-recorder power-operation serialization.
+- Recorder convergence requests now always execute regardless of the DBR's optimistic HomeKit ON/OFF display, including linked-TV OFF recovery.
+- Documented verified DBR behavior: `46` wakes from standby, while channel keys `1e` and `1f` work only after startup.
+
 ## 0.8.3
 
 - Added TV, CL, AV, and combined Toshiba device-discovery profiles to the diagnostic probe script.

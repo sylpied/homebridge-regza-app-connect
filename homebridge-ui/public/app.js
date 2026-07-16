@@ -38,6 +38,9 @@
 
   const renderDevice = (device, index) => {
     const p = `d${index}`;
+    const linkedTvChoices = [['', t('linkedTvAutomatic')], ...config.devices
+      .filter((candidate, candidateIndex) => candidateIndex !== index && candidate.deviceType !== 'recorder')
+      .map(candidate => [candidate.ip, candidate.name || candidate.ip])];
     const basic = `<div class="regza-grid">
       ${select(`${p}-model`, t('model'), device.model || '55J10X', [['55J10X', t('j10x')], ['DBR-M590', t('dbrM590')], ['custom', t('custom')]])}
       ${input(`${p}-name`, t('tvName'), device.name)}
@@ -69,6 +72,13 @@
       <div id="${p}-operation-wake-option" class="regza-wide">${input(`${p}-operation-wake`, t('operationWakeThreshold'), device.operationPowerOnThresholdSeconds ?? 30, 'number', 'min="0" max="3600"', t('operationWakeHelp'))}</div>
       ${input(`${p}-stale-probe`, t('staleProbeHours'), device.stalePowerProbeHours ?? 8, 'number', 'min="0.25" max="168" step="0.25"', t('staleProbeHelp'))}
       ${input(`${p}-command-delay`, t('operationCommandDelay'), device.operationCommandDelayMs ?? 250, 'number', 'min="100" max="5000"', t('operationCommandDelayHelp'))}
+      <div id="${p}-recorder-power" class="regza-grid regza-wide">
+        ${check(`${p}-recorder-linked-tv`, t('recorderLinkedTvPower'), device.recorderPowerOnLinkedTv !== false, t('recorderLinkedTvPowerHelp'))}
+        ${check(`${p}-recorder-linked-tv-off`, t('recorderLinkedTvOff'), device.recorderPowerOffWithLinkedTv !== false, t('recorderLinkedTvOffHelp'))}
+        ${select(`${p}-recorder-linked-tv-ip`, t('recorderLinkedTv'), device.recorderLinkedTvIp || '', linkedTvChoices, t('recorderLinkedTvHelp'))}
+        ${input(`${p}-recorder-tv-off-delay`, t('recorderTvOffDelay'), device.recorderLinkedTvOffDelaySeconds ?? 5, 'number', 'min="0" max="30"', t('recorderTvOffDelayHelp'))}
+        ${input(`${p}-recorder-off-delay`, t('recorderOffDelay'), device.recorderPowerOffDelaySeconds ?? 10, 'number', 'min="1" max="30"', t('recorderOffDelayHelp'))}
+      </div>
       ${check(`${p}-wol`, t('wol'), device.enableWakeOnLan === true, t('wolHelp'))}
       <div id="${p}-wol-options" class="regza-grid regza-wide">
         ${input(`${p}-wol-address`, t('wolAddress'), device.wakeOnLanAddress)}
@@ -103,10 +113,10 @@
   };
   const bindDevice = (device, index) => {
     const p = `d${index}`;
-    [['name','name'],['model','model'],['device-type','deviceType'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['publish-mode','publishMode'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
-    [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['operation-wake','operationPowerOnThresholdSeconds'],['stale-probe','stalePowerProbeHours'],['command-delay','operationCommandDelayMs'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
-    [['selfsigned','allowSelfSignedCertificate'],['ssdp-renderer','supportsSsdpRendererStatus'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
-    ['power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
+    [['name','name'],['model','model'],['device-type','deviceType'],['ip','ip'],['mac','mac'],['username','username'],['password','password'],['protocol','protocol'],['publish-mode','publishMode'],['power-mode','powerMode'],['power-on','powerOnKey'],['power-off','powerOffKey'],['power-toggle','powerToggleKey'],['probe-mode','powerProbeMode'],['recorder-linked-tv-ip','recorderLinkedTvIp'],['wol-address','wakeOnLanAddress'],['select-mode','selectKeyMode']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key));
+    [['port','port'],['timeout','requestTimeoutMs'],['polling','pollingInterval'],['probe-interval','powerProbeInterval'],['operation-wake','operationPowerOnThresholdSeconds'],['stale-probe','stalePowerProbeHours'],['command-delay','operationCommandDelayMs'],['recorder-tv-off-delay','recorderLinkedTvOffDelaySeconds'],['recorder-off-delay','recorderPowerOffDelaySeconds'],['wol-port','wakeOnLanPort'],['wol-delay','powerOnDelaySeconds'],['nav-timeout','navigationTimeoutSeconds'],['post-select','navigationPostSelectResetSeconds']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'number'));
+    [['selfsigned','allowSelfSignedCertificate'],['ssdp-renderer','supportsSsdpRendererStatus'],['recorder-linked-tv','recorderPowerOnLinkedTv'],['recorder-linked-tv-off','recorderPowerOffWithLinkedTv'],['wol','enableWakeOnLan'],['context-arrows','contextualRemoteArrows']].forEach(([id,key]) => bindValue(`${p}-${id}`, device, key, 'check'));
+    ['device-type','power-mode','probe-mode','wol'].forEach((id) => byId(`${p}-${id}`)?.addEventListener('change', () => updateConditional(device, index)));
     byId(`${p}-model`)?.addEventListener('change', () => {
       if (device.model === '55J10X') {
         device.name = 'REGZA 55J10X';
@@ -132,7 +142,7 @@
   const applyJ10x = (d) => Object.assign(d, { deviceType: 'tv', publishMode: 'external', protocol: 'https', port: 4430, allowSelfSignedCertificate: true, powerMode: 'discrete', powerOnKey: '40BF7E', powerOffKey: '40BF7F', powerToggleKey: '40BF12', pollingInterval: 120, supportsSsdpRendererStatus: true, enableMutePowerProbe: true, powerProbeMode: 'operation', powerProbeInterval: 60, operationPowerOnThresholdSeconds: 30, stalePowerProbeHours: 8, operationCommandDelayMs: 250, selectKeyMode: 'guideFirst', contextualRemoteArrows: true, inputs: defaultInputs.map((input) => ({ ...input })) });
   const applyDbrM590 = (d) => Object.assign(d, {
     deviceType: 'recorder', publishMode: 'external', protocol: 'http', port: 80, allowSelfSignedCertificate: false,
-    powerMode: 'toggle', powerToggleKey: '12', enableWakeOnLan: false,
+    powerMode: 'toggle', powerToggleKey: '12', recorderPowerOnLinkedTv: true, recorderPowerOffWithLinkedTv: true, recorderLinkedTvOffDelaySeconds: 5, recorderPowerOffDelaySeconds: 10, enableWakeOnLan: false,
     supportsSsdpRendererStatus: false, enableMutePowerProbe: false, powerProbeMode: 'optimistic',
     selectKeyMode: 'menuFirst', contextualRemoteArrows: false,
     keyMap: {
@@ -165,6 +175,7 @@
     byId(`${p}-discrete`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
     byId(`${p}-toggle`)?.classList.toggle('d-none', device.powerMode !== 'toggle');
     byId(`${p}-operation-wake-option`)?.classList.toggle('d-none', device.powerMode !== 'discrete');
+    byId(`${p}-recorder-power`)?.classList.toggle('d-none', device.deviceType !== 'recorder');
     byId(`${p}-probe-options`)?.classList.toggle('d-none', device.powerProbeMode !== 'interval');
     byId(`${p}-wol-options`)?.classList.toggle('d-none', device.enableWakeOnLan !== true);
     homebridge.fixScrollHeight?.();

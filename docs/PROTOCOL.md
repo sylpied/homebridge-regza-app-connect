@@ -19,7 +19,9 @@ Physical-device ON/OFF comparisons produced identical responses through all of t
 
 The SOAP captures were both 10,767 bytes and had identical SHA-256 hashes. `GetSystemUpdateID` remained `40487`, `GetCurrentConnectionIDs` remained `0`, and Time Shift settings, recording destinations, and FriendlyName were also unchanged. The recorder's DLNA/network server therefore appears to stay active independently of its front-panel power state.
 
-DBR-M590 power is consequently managed optimistically for now. No read-only API that reliably detects power changes made through the physical remote has been verified.
+DBR-M590 read-back power state is consequently managed optimistically. No read-only API that reliably detects power changes made through the physical remote has been verified. Start Menu key `46`, however, was verified to wake the recorder from standby. For ON, the plugin sends `46` to the DBR and immediately sends discrete ON to the selected linked TV, without waiting for TV startup. For OFF, wake-then-toggle normalization is used only while the linked TV is confirmed OFF: `46`, a configurable delay (10 seconds by default), then `12`. While the linked TV is ON, only `12` is sent so current viewing is not interrupted by a Start Menu or HDMI transition. A confirmed linked-TV ON-to-OFF transition also schedules `46` → 10 seconds → `12` after an initial configurable delay (5 seconds by default). An already-OFF state at startup does not trigger it. If the TV turns ON during either wait, the final `12` is cancelled. Per-recorder serialization invalidates an older unfinished sequence when a newer power request arrives.
+
+Recorder channel-up `1e` and channel-down `1f` work while ON but do not wake the DBR from standby. Inspection of the official application's per-device key table found empty recorder columns for TV discrete ON `40BF7E` and OFF `40BF7F`; short candidates `7e` and `7f` were also inert on the tested DBR-M590.
 
 The implementation in RZ Program Guide 1.6.3 was also inspected. It reads DBR display information over TCP port 1048, but its power button does not derive an ON/OFF state from that payload and instead sends the toggle key. Device discovery distinguishes TV (`0x30`), CL (`0x20`), and AV (`0x10`) profiles. DBR-M590 responded to the AV query, but physical-device OFF/ON captures were identical apart from the transaction ID. Discovery therefore remains available in standby and is not power-state evidence.
 
@@ -36,6 +38,8 @@ English | [日本語](PROTOCOL.ja.md)
 Some REGZA models expose a self-describing v2 API. Querying the support endpoint is the recommended first step when investigating a new model.
 
 See also the [REGZA remote-key reference](REMOTE_KEYS.md). It contains unverified entries, so test each key carefully on the target model.
+
+Linked-TV OFF convergence runs whether HomeKit currently displays the DBR as ON or OFF, because that display is optimistic rather than a read-back state.
 
 ## Supported-command discovery
 
